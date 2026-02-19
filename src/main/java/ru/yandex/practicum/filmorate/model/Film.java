@@ -15,13 +15,11 @@ import ru.yandex.practicum.filmorate.annotation.PositiveDuration;
 public class Film {
   private Integer id;
 
-  @NotNull
   @NotBlank
   private String name;
 
   private String description;
 
-  @NotNull
   @DateFirstMovie(message = "Дата релиза не может быть раньше 28 декабря 1895 года")
   @JsonFormat(pattern = "yyyy-MM-dd")
   private LocalDate releaseDate;

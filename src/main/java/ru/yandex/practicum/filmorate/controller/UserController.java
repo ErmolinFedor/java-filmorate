@@ -28,6 +28,7 @@ public class UserController {
 
   @GetMapping
   public Collection<User> findAll() {
+    log.info("Получен запрос GET /users на получение списка всех пользователей");
     return userService.findAll();
   }
 

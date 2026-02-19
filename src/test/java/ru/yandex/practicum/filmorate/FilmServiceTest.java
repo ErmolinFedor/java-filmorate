@@ -13,6 +13,7 @@ import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
@@ -52,6 +53,17 @@ public class FilmServiceTest {
   }
 
   @Test
+  void createFilmSuccessfullyWithOnlyRequired() throws ValidationException {
+    Film film = createValidFilm();
+    film.setDescription(null);
+    Film savedFilm = filmService.create(film);
+
+    assertNotNull(savedFilm.getId(), "ID не должен быть null после создания");
+    assertEquals(film, savedFilm);
+    assertEquals(1, filmService.findAll().size());
+  }
+
+  @Test
   void createAndIncrementIdWithMultipleFilmsAdded() throws ValidationException {
     Film film1 = createValidFilm();
     Film film2 = createValidFilm();
@@ -65,7 +77,7 @@ public class FilmServiceTest {
   }
 
   @Test
-  void updateFilmSuccessfully() throws ValidationException {
+  void updateFilmSuccessfully() throws ValidationException, NotFoundException {
     Film film = filmService.create(createValidFilm());
 
     Film updatedData = new Film();
@@ -99,7 +111,7 @@ public class FilmServiceTest {
   }
 
   @Test
-  void updateFailureWithTooLonDescription() {
+  void updateFailureWithTooLongDescription() {
     Film film = createValidFilm();
 
     film.setDescription("A".repeat(201));
@@ -109,6 +121,18 @@ public class FilmServiceTest {
     });
 
     assertEquals("Максимальная длина описания — 200 символов", exception.getMessage());
+  }
+
+  @Test
+  void createFailureWithNullDuration() {
+    Film film = createValidFilm();
+    film.setDuration(null);
+
+    Set<ConstraintViolation<Film>> validated = validator.validate(film);
+
+    boolean hasEmailViolation = validated.stream()
+        .anyMatch(v -> v.getPropertyPath().toString().equals("duration"));
+    assertTrue(hasEmailViolation, "Поле duration не может быть null");
   }
 
   @Test
@@ -136,7 +160,18 @@ public class FilmServiceTest {
   }
 
   @Test
-  void createFailureWithWrongReleaseDate() {
+  void createFailureWithWrongReleaseDateNull() {
+    Film film = createValidFilm();
+    film.setReleaseDate(null);
+    Set<ConstraintViolation<Film>> validated = validator.validate(film);
+
+    boolean hasEmailViolation = validated.stream()
+        .anyMatch(v -> v.getPropertyPath().toString().equals("releaseDate"));
+    assertTrue(hasEmailViolation, "Поле releaseDate не может быть null");
+  }
+
+  @Test
+  void createFailureWithWrongReleaseDatePast() {
     Film film = createValidFilm();
     film.setReleaseDate(LocalDate.of(1895, 12, 27));
     Set<ConstraintViolation<Film>> validated = validator.validate(film);
@@ -147,11 +182,22 @@ public class FilmServiceTest {
   }
 
   @Test
+  void createFailureWithWrongReleaseDateFuture() {
+    Film film = createValidFilm();
+    film.setReleaseDate(LocalDate.now().plusDays(1));
+    Set<ConstraintViolation<Film>> validated = validator.validate(film);
+
+    boolean hasEmailViolation = validated.stream()
+        .anyMatch(v -> v.getPropertyPath().toString().equals("releaseDate"));
+    assertTrue(hasEmailViolation, "Поле releaseDate не может быть в будущем");
+  }
+
+  @Test
   void updateFailureWithNonExistentFilm() {
     Film film = createValidFilm();
     film.setId(999);
 
-    ValidationException exception = assertThrows(ValidationException.class, () -> {
+    NotFoundException exception = assertThrows(NotFoundException.class, () -> {
       filmService.update(film);
     });
 
