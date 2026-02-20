@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import static ru.yandex.practicum.filmorate.utils.Utils.getNextId;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
+import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -35,31 +37,42 @@ public class UserService {
     return user;
   }
 
-  public User update(@RequestBody User newUser) throws ValidationException {
+  public User update(@RequestBody User newUser) throws ValidationException, NotFoundException {
     if (!users.containsKey(newUser.getId())) {
       logger.warn("Ошибка обновления: пользователь с id={} не найден", newUser.getId());
-      throw new ValidationException("Пользователь с Id " + newUser.getId() + " не найден");
+      throw new NotFoundException("Пользователь с Id " + newUser.getId() + " не найден");
     }
     User oldUser = users.get(newUser.getId());
     if (newUser.getBirthday() != null) {
+      if (newUser.getBirthday().isAfter(LocalDate.now())) {
+        logger.warn("Ошибка обновления: дата рождения {} не может быть в будущем.",
+            newUser.getBirthday());
+        throw new ValidationException("Дата рождения не может быть в будущем.");
+      }
       oldUser.setBirthday(newUser.getBirthday());
-      logger.trace("обновлено поле: {}", newUser.getBirthday());
+      logger.trace("обновлено поле: Birthday, новое значение: {}", newUser.getBirthday());
     }
 
     if (newUser.getLogin() != null) {
       validateLogin(newUser);
       oldUser.setLogin(newUser.getLogin());
-      logger.trace("обновлено поле: {}", newUser.getLogin());
+      logger.trace("обновлено поле: Login, новое значение: {}", newUser.getLogin());
     }
 
     if (newUser.getName() != null && !newUser.getName().isBlank()) {
       oldUser.setName(newUser.getName());
-      logger.debug("обновлено поле: {}", newUser.getName());
+      logger.debug("обновлено поле: Name, новое значение: {}", newUser.getName());
     }
 
     if (newUser.getEmail() != null) {
+      if (newUser.getEmail().isBlank() || !newUser.getEmail().contains("@")) {
+        logger.error("Пользователь {} не прошел валидацию по полю Email: {}", newUser.getName(),
+            newUser.getEmail());
+        throw new ValidationException(
+            "Электронная почта не может быть пустой и должна содержать символ @");
+      }
       oldUser.setEmail(newUser.getEmail());
-      logger.debug("обновлено поле: {}", newUser.getEmail());
+      logger.debug("обновлено поле: Email, новое значение: {}", newUser.getEmail());
     }
 
     logger.info("Пользователь id={} успешно обновлен", newUser.getId());

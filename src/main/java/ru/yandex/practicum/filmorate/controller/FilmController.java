@@ -35,13 +35,13 @@ public class FilmController {
 
   @PostMapping
   @ResponseStatus(CREATED)
-  public Film create(@Valid @RequestBody  Film film) throws ValidationException {
+  public Film create(@Valid @RequestBody Film film) throws ValidationException {
     log.info("Получен запрос POST /films на добавление фильма: {}", film.getName());
     return filmService.create(film);
   }
 
   @PutMapping
-  public Film update(@RequestBody  Film film) throws ValidationException, NotFoundException {
+  public Film update(@RequestBody Film film) throws ValidationException, NotFoundException {
     log.info("Получен запрос PUT /films на обновление фильма с id={}", film.getId());
     return filmService.update(film);
   }

@@ -15,27 +15,29 @@ import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 public class UserServiceTest {
-  private UserService userService = new UserService();
+
   private static Validator validator;
   private static ValidatorFactory factory;
-
-  @BeforeEach
-  void setUp() {
-    userService = new UserService();
-    factory = Validation.buildDefaultValidatorFactory();
-    validator = factory.getValidator();
-  }
+  private UserService userService = new UserService();
 
   @AfterAll
   static void tearDown() {
     if (factory != null) {
       factory.close();
     }
+  }
+
+  @BeforeEach
+  void setUp() {
+    userService = new UserService();
+    factory = Validation.buildDefaultValidatorFactory();
+    validator = factory.getValidator();
   }
 
   @Test
@@ -79,7 +81,7 @@ public class UserServiceTest {
   }
 
   @Test
-  void updateUserSuccessfully() throws ValidationException {
+  void updateUserSuccessfully() throws ValidationException, NotFoundException {
     User user = userService.create(createValidUser());
     LocalDate birthday = LocalDate.of(2014, 11, 1);
 
@@ -99,7 +101,7 @@ public class UserServiceTest {
   }
 
   @Test
-  void updateUserSuccessfullyWithBlankName() throws ValidationException {
+  void updateUserSuccessfullyWithBlankName() throws ValidationException, NotFoundException {
     User user = userService.create(createValidUser());
     LocalDate birthday = LocalDate.of(2014, 11, 1);
 
@@ -139,6 +141,16 @@ public class UserServiceTest {
   }
 
   @Test
+  void updatedFailureWithUserWithWrongEmail() throws ValidationException {
+    User user = userService.create(createValidUser());
+
+    User updatedData = new User();
+    updatedData.setId(user.getId());
+    updatedData.setEmail("wrong mail");
+    assertThrows(ValidationException.class, () -> userService.update(updatedData));
+  }
+
+  @Test
   void createFailureWithUserWithWrongEmail() {
     User user = createValidUser();
     user.setEmail("test");
@@ -171,11 +183,21 @@ public class UserServiceTest {
   }
 
   @Test
+  void updateFailureWithBirthdayInFuture() throws ValidationException {
+    User user = userService.create(createValidUser());
+
+    User updatedData = new User();
+    updatedData.setId(user.getId());
+    updatedData.setBirthday(LocalDate.now().plusDays(1));
+    assertThrows(ValidationException.class, () -> userService.update(updatedData));
+  }
+
+  @Test
   void updateFailureWithNonExistentUser() {
     User user = createValidUser();
     user.setId(999);
 
-    assertThrows(ValidationException.class, () -> userService.update(user));
+    assertThrows(NotFoundException.class, () -> userService.update(user));
   }
 
   private User createValidUser() {

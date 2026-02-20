@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
@@ -40,7 +41,7 @@ public class UserController {
   }
 
   @PutMapping
-  public User update(@Valid @RequestBody User newUser) throws ValidationException {
+  public User update(@RequestBody User newUser) throws ValidationException, NotFoundException {
     log.info("Получен запрос PUT /users с телом: {}", newUser);
     return userService.update(newUser);
   }

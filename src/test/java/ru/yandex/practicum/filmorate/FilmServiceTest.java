@@ -67,7 +67,7 @@ public class FilmServiceTest {
   void createAndIncrementIdWithMultipleFilmsAdded() throws ValidationException {
     Film film1 = createValidFilm();
     Film film2 = createValidFilm();
-    film2.setName("he Batman");
+    film2.setName("The Batman");
 
     Film saved1 = filmService.create(film1);
     Film saved2 = filmService.create(film2);
@@ -88,6 +88,22 @@ public class FilmServiceTest {
     Film result = filmService.update(updatedData);
 
     assertEquals(updatedData.getName(), result.getName());
+    assertEquals(updatedData.getDescription(), result.getDescription());
+    assertNotNull(result.getReleaseDate());
+  }
+
+  @Test
+  void updateFilmSuccessfullyWithBlankName() throws ValidationException, NotFoundException {
+    Film film = filmService.create(createValidFilm());
+
+    Film updatedData = new Film();
+    updatedData.setId(film.getId());
+    updatedData.setName("   ");
+    updatedData.setDescription("New Description");
+
+    Film result = filmService.update(updatedData);
+
+    assertEquals(film.getName(), result.getName());
     assertEquals(updatedData.getDescription(), result.getDescription());
     assertNotNull(result.getReleaseDate());
   }

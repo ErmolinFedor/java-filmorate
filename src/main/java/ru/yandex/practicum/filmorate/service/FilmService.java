@@ -40,27 +40,27 @@ public class FilmService {
 
     Film oldFilm = films.get(newFilm.getId());
     // Обновление полей, если они не null
-    if (newFilm.getName() != null) {
+    if (newFilm.getName() != null && !newFilm.getName().isBlank()) {
       oldFilm.setName(newFilm.getName());
-      log.debug("обновлено поле: {}", newFilm.getName());
+      log.debug("обновлено поле: Name, новое значение: {}", newFilm.getName());
     }
 
     if (newFilm.getDescription() != null) {
       validateDescription(newFilm);
       oldFilm.setDescription(newFilm.getDescription());
-      log.debug("обновлено поле: {}", newFilm.getDescription());
+      log.debug("обновлено поле: Description, новое значение: {}", newFilm.getDescription());
     }
 
     if (newFilm.getReleaseDate() != null) {
       validateReleaseDate(newFilm);
       oldFilm.setReleaseDate(newFilm.getReleaseDate());
-      log.debug("обновлено поле: {}", newFilm.getReleaseDate());
+      log.debug("обновлено поле: ReleaseDate, новое значение: {}", newFilm.getReleaseDate());
     }
 
     if (newFilm.getDuration() != null) {
       validateDuration(newFilm);
       oldFilm.setDuration(newFilm.getDuration());
-      log.debug("обновлено поле: {}", newFilm.getDuration());
+      log.debug("обновлено поле: Duration, новое значение: {}", newFilm.getDuration());
     }
 
     log.info("Обновлен фильм: {}", oldFilm.getName());
@@ -84,7 +84,7 @@ public class FilmService {
   }
 
   private void validateDuration(Film film) throws ValidationException {
-    if (film.getDuration() == null || film.getDuration().isNegative()) {
+    if (film.getDuration() == null || !film.getDuration().isPositive()) {
       log.warn("Фильм {} не прошел валидацию по полю: Duration", film.getName());
       throw new ValidationException("Продолжительность фильма должна быть положительным числом");
     }
