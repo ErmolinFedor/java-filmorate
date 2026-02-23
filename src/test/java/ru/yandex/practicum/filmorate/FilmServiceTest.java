@@ -21,16 +21,20 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Collection;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
 
 public class FilmServiceTest {
 
   private FilmService filmService;
   private static Validator validator;
   private static ValidatorFactory factory;
+  private FilmStorage filmStorage;
 
   @BeforeEach
   void setUp() {
-    filmService = new FilmService();
+    filmStorage = new InMemoryFilmStorage();
+    filmService = new FilmService(filmStorage);
     factory = Validation.buildDefaultValidatorFactory();
     validator = factory.getValidator();
   }

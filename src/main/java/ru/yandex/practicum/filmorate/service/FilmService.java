@@ -1,44 +1,49 @@
 package ru.yandex.practicum.filmorate.service;
 
-import static ru.yandex.practicum.filmorate.utils.Utils.getNextId;
-
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 @Slf4j
 @Service
 public class FilmService {
 
-  private final Map<Integer, Film> films = new HashMap<>();
+  private final FilmStorage filmStorage;
+
+  @Autowired
+  public FilmService(@Qualifier("inMemoryFilmStorage") FilmStorage filmStorage) {
+    this.filmStorage = filmStorage;
+  }
 
   public Collection<Film> findAll() {
-    return films.values();
+    return filmStorage.findAll();
   }
 
   public Film create(@RequestBody Film film) throws ValidationException {
     validateDescription(film);
 
-    film.setId(getNextId(films));
-    films.put(film.getId(), film);
+    film = filmStorage.create(film);
     log.info("Добавлен новый фильм: id={}, name={}", film.getId(), film.getName());
     return film;
   }
 
   public Film update(@RequestBody Film newFilm) throws ValidationException, NotFoundException {
-    if (!films.containsKey(newFilm.getId())) {
+    Optional<Film> oldfilmOptional = filmStorage.findById(newFilm.getId());
+    if (oldfilmOptional.isEmpty()) {
       log.warn("Попытка обновления несуществующего фильма: id={}", newFilm.getId());
       throw new NotFoundException("Фильм с Id " + newFilm.getId() + " не найден");
     }
 
-    Film oldFilm = films.get(newFilm.getId());
+    Film oldFilm = oldfilmOptional.get();
     // Обновление полей, если они не null
     if (newFilm.getName() != null && !newFilm.getName().isBlank()) {
       oldFilm.setName(newFilm.getName());
@@ -63,6 +68,7 @@ public class FilmService {
       log.debug("обновлено поле: Duration, новое значение: {}", newFilm.getDuration());
     }
 
+    filmStorage.update(oldFilm);
     log.info("Обновлен фильм: {}", oldFilm.getName());
     return oldFilm;
   }

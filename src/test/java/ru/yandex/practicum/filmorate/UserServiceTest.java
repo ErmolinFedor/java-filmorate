@@ -19,12 +19,15 @@ import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 public class UserServiceTest {
 
   private static Validator validator;
   private static ValidatorFactory factory;
-  private UserService userService = new UserService();
+  private UserStorage userStorage;
+  private UserService userService;
 
   @AfterAll
   static void tearDown() {
@@ -35,7 +38,8 @@ public class UserServiceTest {
 
   @BeforeEach
   void setUp() {
-    userService = new UserService();
+    userStorage = new InMemoryUserStorage();
+    userService = new UserService(userStorage);
     factory = Validation.buildDefaultValidatorFactory();
     validator = factory.getValidator();
   }
