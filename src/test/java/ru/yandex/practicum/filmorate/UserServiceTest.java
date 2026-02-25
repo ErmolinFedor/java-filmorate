@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,6 +12,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +63,7 @@ public class UserServiceTest {
 
     User savedUser = userService.create(user);
 
-    assertEquals("friend", savedUser.getName(), "Если имя пустое, должен использоваться логин");
+    assertEquals("user", savedUser.getName(), "Если имя пустое, должен использоваться логин");
   }
 
   @Test
@@ -71,7 +73,7 @@ public class UserServiceTest {
 
     User savedUser = userService.create(user);
 
-    assertEquals("friend", savedUser.getName(), "Если имя null, должен использоваться логин");
+    assertEquals("user", savedUser.getName(), "Если имя null, должен использоваться логин");
   }
 
   @Test
@@ -134,6 +136,145 @@ public class UserServiceTest {
     Collection<User> users = userService.findAll();
 
     assertEquals(2, users.size());
+  }
+
+  @Test
+  void getUsersById() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+    Optional<User> optionalUser = userService.findById(user.getId());
+
+    assertTrue(optionalUser.isPresent());
+    assertEquals(user, optionalUser.get());
+  }
+
+  @Test
+  void addFriendSuccessfully() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+    User friend = createValidUser();
+    friend.setLogin("friend");
+    friend = userService.create(friend);
+
+    userService.addFriend(user.getId(), friend.getId());
+
+    Optional<User> actualUser = userService.findById(user.getId());
+    Optional<User> actualFriend = userService.findById(friend.getId());
+
+    assertTrue(actualUser.isPresent());
+    assertTrue(actualFriend.isPresent());
+
+    assertTrue(actualUser.get().getFriends().contains(friend.getId()));
+    assertTrue(actualFriend.get().getFriends().contains(user.getId()));
+  }
+
+  @Test
+  void getEmptyFriendSuccessfully() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+
+    Collection<User> friends = userService.findAllFriendsById(user.getId());
+    assertTrue(friends.isEmpty());
+  }
+
+  @Test
+  void getFriendSuccessfully() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+    User friend = createValidUser();
+    friend.setLogin("friend");
+    friend = userService.create(friend);
+
+    userService.addFriend(user.getId(), friend.getId());
+
+    Collection<User> friends = userService.findAllFriendsById(user.getId());
+    assertFalse(friends.isEmpty());
+    assertEquals(friend, friends.stream().findFirst().get());
+  }
+
+  @Test
+  void getCommonFriendSuccessfully() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+    User friend1 = createValidUser();
+    friend1.setLogin("friend1");
+    friend1 = userService.create(friend1);
+
+    userService.addFriend(user.getId(), friend1.getId());
+
+    User friend2 = createValidUser();
+    friend2.setLogin("friend2");
+    friend2 = userService.create(friend2);
+
+    userService.addFriend(friend1.getId(), friend2.getId());
+
+    Collection<User> commonFriends = userService.getCommonFriends(user.getId(), friend2.getId());
+    assertFalse(commonFriends.isEmpty());
+    assertEquals(friend1, commonFriends.stream().findFirst().get());
+  }
+
+  @Test
+  void getEmptyCommonWhenInFriendsSuccessfully() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+    User friend1 = createValidUser();
+    friend1.setLogin("friend1");
+    friend1 = userService.create(friend1);
+
+    userService.addFriend(user.getId(), friend1.getId());
+
+    Collection<User> commonFriends = userService.getCommonFriends(user.getId(), friend1.getId());
+    assertTrue(commonFriends.isEmpty());
+  }
+
+  @Test
+  void getCommonEmptyFriendsSuccessfully() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+    User friend1 = createValidUser();
+    friend1.setLogin("friend1");
+    friend1 = userService.create(friend1);
+
+    userService.addFriend(user.getId(), friend1.getId());
+
+    User friend2 = createValidUser();
+    friend2.setLogin("friend2");
+    friend2 = userService.create(friend2);
+
+    Collection<User> commonFriends = userService.getCommonFriends(user.getId(), friend2.getId());
+    assertTrue(commonFriends.isEmpty());
+  }
+
+  @Test
+  void deleteFriendSuccessfully() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+    User friend = createValidUser();
+    friend.setLogin("friend");
+    friend = userService.create(friend);
+
+    userService.addFriend(user.getId(), friend.getId());
+
+    Collection<User> friends = userService.findAllFriendsById(user.getId());
+    assertFalse(friends.isEmpty());
+    assertEquals(friend, friends.stream().findFirst().get());
+
+    userService.deleteFriend(user.getId(), friend.getId());
+    Collection<User> friendsAfterDel = userService.findAllFriendsById(user.getId());
+    assertTrue(friendsAfterDel.isEmpty());
+  }
+
+  @Test
+  void deleteFriendFailureWhenDeleteSelfAsFriend() throws ValidationException {
+    User user = userService.create(createValidUser());
+
+    assertThrows(ValidationException.class, () -> userService.deleteFriend(user.getId(), user.getId()));
+  }
+
+  @Test
+  void deleteFriendFailureWhenUserDoesNotExist() throws ValidationException {
+    User user = userService.create(createValidUser());
+
+    assertThrows(NotFoundException.class, () -> userService.deleteFriend(user.getId(), 999));
+  }
+
+  @Test
+  void addFriendFailureWhenAddSelfAsFriend() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+
+    assertThrows(ValidationException.class, () -> userService.addFriend(user.getId(), user.getId()));
   }
 
   @Test
@@ -207,7 +348,7 @@ public class UserServiceTest {
   private User createValidUser() {
     User user = new User();
     user.setEmail("test@test.ru");
-    user.setLogin("friend");
+    user.setLogin("user");
     user.setName("Common Name");
     user.setBirthday(LocalDate.of(1985, 9, 20));
     return user;

@@ -2,7 +2,10 @@ package ru.yandex.practicum.filmorate.service;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -28,6 +31,15 @@ public class UserService {
     return userStorage.findAll();
   }
 
+  public Optional<User> findById(int id) throws NotFoundException {
+    Optional<User> userOptional = userStorage.findById(id);
+    if (userOptional.isEmpty()) {
+      log.warn("Не найден пользователь: id={}", id);
+      throw new NotFoundException("Пользователь с Id " + id + " не найден");
+    }
+    return userOptional;
+  }
+
   public User create(@RequestBody User user) throws ValidationException {
     validateLogin(user);
 
@@ -41,12 +53,7 @@ public class UserService {
   }
 
   public User update(@RequestBody User newUser) throws ValidationException, NotFoundException {
-    Optional<User> oldUserOptional = userStorage.findById(newUser.getId());
-    if (oldUserOptional.isEmpty()) {
-      log.warn("Ошибка обновления: пользователь с id={} не найден", newUser.getId());
-      throw new NotFoundException("Пользователь с Id " + newUser.getId() + " не найден");
-    }
-    User oldUser = oldUserOptional.get();
+    User oldUser = getOrThrow(newUser.getId());
     if (newUser.getBirthday() != null) {
       if (newUser.getBirthday().isAfter(LocalDate.now())) {
         log.warn("Ошибка обновления: дата рождения {} не может быть в будущем.",
@@ -84,11 +91,73 @@ public class UserService {
     return oldUser;
   }
 
+  public void addFriend(int id, int friendId) throws NotFoundException, ValidationException {
+    if (id == friendId) {
+      log.warn("Попытка добавить самого себя в друзья: id={}", id);
+      throw new ValidationException("Пользователь не может добавить самого себя в друзья");
+    }
+    User user = getOrThrow(id);
+    User friend = getOrThrow(friendId);
+
+    user.getFriends().add(friendId);
+    friend.getFriends().add(user.getId());
+
+    userStorage.update(user);
+    userStorage.update(friend);
+  }
+
+  public Collection<User> findAllFriendsById(int id) throws NotFoundException {
+    User user = getOrThrow(id);
+
+    return user.getFriends().stream()
+        .map(userStorage::findById)
+        .flatMap(Optional::stream)
+        .collect(Collectors.toList());
+  }
+
+  public void deleteFriend(int id, int friendId) throws NotFoundException, ValidationException {
+    if (id == friendId) {
+      log.warn("Попытка удаления самого себя из друзей: id={}", id);
+      throw new ValidationException("Попытка удаления самого себя из друзей: id=" + id);
+    }
+    User user = getOrThrow(id);
+    User friend = getOrThrow(friendId);
+
+    boolean removedFromUser = user.getFriends().remove(friendId);
+    boolean removedFromFriend = friend.getFriends().remove(id);
+
+    if (removedFromUser || removedFromFriend) {
+      userStorage.update(user);
+      userStorage.update(friend);
+      log.info("Пользователи {} и {} успешно удалены из друзей друг у друга", id, friendId);
+    } else {
+      log.info("Пользователи {} и {} не являлись друзьями, удаление не требуется", id, friendId);
+    }
+  }
+
   private void validateLogin(User user) throws ValidationException {
     if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-      log.error("Пользователь {} не прошел валидацию по полю: {}", user.getName(),
-          user.getLogin());
+      log.error("Пользователь {} не прошел валидацию по полю: {}", user.getName(), user.getLogin());
       throw new ValidationException("Логин не может быть пустым и содержать пробелы");
     }
+  }
+
+  private User getOrThrow(int id) throws NotFoundException {
+
+    return userStorage.findById(id)
+        .orElseThrow(() -> {
+          log.warn("Не найден пользователь: id = {}", id);
+          return new NotFoundException("Пользователь с Id " + id + " не найден");
+        });
+  }
+
+  public Collection<User> getCommonFriends(int userId, int otherId) throws NotFoundException {
+    User user = getOrThrow(userId);
+    User friend = getOrThrow(otherId);
+    Set<Integer> commonIds = new HashSet<>(user.getFriends());
+    commonIds.retainAll(friend.getFriends());
+    return commonIds.stream()
+        .map(this::getOrThrow)
+        .collect(Collectors.toList());
   }
 }
