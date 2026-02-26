@@ -53,7 +53,7 @@ public class UserService {
   }
 
   public User update(@RequestBody User newUser) throws ValidationException, NotFoundException {
-    User oldUser = getOrThrow(newUser.getId());
+    User oldUser = getUserOrThrow(newUser.getId());
     if (newUser.getBirthday() != null) {
       if (newUser.getBirthday().isAfter(LocalDate.now())) {
         log.warn("Ошибка обновления: дата рождения {} не может быть в будущем.",
@@ -96,8 +96,8 @@ public class UserService {
       log.warn("Попытка добавить самого себя в друзья: id={}", id);
       throw new ValidationException("Пользователь не может добавить самого себя в друзья");
     }
-    User user = getOrThrow(id);
-    User friend = getOrThrow(friendId);
+    User user = getUserOrThrow(id);
+    User friend = getUserOrThrow(friendId);
 
     user.getFriends().add(friendId);
     friend.getFriends().add(user.getId());
@@ -107,7 +107,7 @@ public class UserService {
   }
 
   public Collection<User> findAllFriendsById(int id) throws NotFoundException {
-    User user = getOrThrow(id);
+    User user = getUserOrThrow(id);
 
     return user.getFriends().stream()
         .map(userStorage::findById)
@@ -120,8 +120,8 @@ public class UserService {
       log.warn("Попытка удаления самого себя из друзей: id={}", id);
       throw new ValidationException("Попытка удаления самого себя из друзей: id=" + id);
     }
-    User user = getOrThrow(id);
-    User friend = getOrThrow(friendId);
+    User user = getUserOrThrow(id);
+    User friend = getUserOrThrow(friendId);
 
     boolean removedFromUser = user.getFriends().remove(friendId);
     boolean removedFromFriend = friend.getFriends().remove(id);
@@ -142,7 +142,7 @@ public class UserService {
     }
   }
 
-  private User getOrThrow(int id) throws NotFoundException {
+  public User getUserOrThrow(int id) throws NotFoundException {
 
     return userStorage.findById(id)
         .orElseThrow(() -> {
@@ -152,12 +152,12 @@ public class UserService {
   }
 
   public Collection<User> getCommonFriends(int userId, int otherId) throws NotFoundException {
-    User user = getOrThrow(userId);
-    User friend = getOrThrow(otherId);
+    User user = getUserOrThrow(userId);
+    User friend = getUserOrThrow(otherId);
     Set<Integer> commonIds = new HashSet<>(user.getFriends());
     commonIds.retainAll(friend.getFriends());
     return commonIds.stream()
-        .map(this::getOrThrow)
+        .map(this::getUserOrThrow)
         .collect(Collectors.toList());
   }
 }

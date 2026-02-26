@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,10 +19,12 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 public class FilmService {
 
   private final FilmStorage filmStorage;
+  private final UserService userService;
 
   @Autowired
-  public FilmService(@Qualifier("inMemoryFilmStorage") FilmStorage filmStorage) {
+  public FilmService(@Qualifier("inMemoryFilmStorage") FilmStorage filmStorage, UserService userService) {
     this.filmStorage = filmStorage;
+    this.userService = userService;
   }
 
   public Collection<Film> findAll() {
@@ -73,6 +76,37 @@ public class FilmService {
     return oldFilm;
   }
 
+  public void addLike(int id, int userId) {
+    Film film = getFilmOrThrow(id);
+    userService.getUserOrThrow(userId);
+
+    film.getLikes().add(userId);
+    filmStorage.update(film);
+  }
+
+  public void removeLike(int filmId, int userId) {
+    Film film = getFilmOrThrow(filmId);
+    userService.getUserOrThrow(userId);
+
+    boolean removed = film.getLikes().remove(userId);
+
+    if (removed) {
+      filmStorage.update(film);
+      log.info("Пользователь id={} удалил лайк с фильма id={}", userId, filmId);
+    } else {
+      log.info("Лайк от пользователя id={} на фильме id={} не найден", userId, filmId);
+    }
+  }
+
+  private Film getFilmOrThrow(int id) throws NotFoundException {
+
+    return filmStorage.findById(id)
+        .orElseThrow(() -> {
+          log.warn("Не найден фильм: id = {}", id);
+          return new NotFoundException("Фильм с Id " + id + " не найден");
+        });
+  }
+
   private void validateReleaseDate(Film film) throws ValidationException {
     if (film.getReleaseDate() == null || film.getReleaseDate()
         .isBefore(LocalDate.of(1895, 12, 28))
@@ -94,5 +128,12 @@ public class FilmService {
       log.warn("Фильм {} не прошел валидацию по полю: Duration", film.getName());
       throw new ValidationException("Продолжительность фильма должна быть положительным числом");
     }
+  }
+
+  public Collection<Film> getPopularFilms(int count) {
+    return filmStorage.findAll().stream()
+        .sorted((f1, f2) -> f2.getLikes().size() - f1.getLikes().size())
+        .limit(count)
+        .collect(Collectors.toList());
   }
 }
