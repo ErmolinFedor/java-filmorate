@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -31,5 +32,6 @@ public class Film {
   @JsonFormat(shape = JsonFormat.Shape.NUMBER)
   private Duration duration;
 
+  @JsonIgnore
   private Set<Integer> likes = new HashSet<>();
 }

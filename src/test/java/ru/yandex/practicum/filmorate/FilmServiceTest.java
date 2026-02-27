@@ -130,7 +130,6 @@ public class FilmServiceTest {
 
   @Test
   void addLikeSuccessfully() throws ValidationException {
-
     Film film = filmService.create(createValidFilm());
     User user = new User();
     user.setEmail("test@test.ru");

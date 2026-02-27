@@ -1,7 +1,5 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
-import static ru.yandex.practicum.filmorate.utils.Utils.getNextId;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +13,7 @@ import ru.yandex.practicum.filmorate.model.User;
 @Slf4j
 public class InMemoryUserStorage implements UserStorage {
   private final Map<Integer, User> users = new HashMap<>();
+  private int idCounter = 0;
 
   @Override
   public Collection<User> findAll() {
@@ -23,7 +22,7 @@ public class InMemoryUserStorage implements UserStorage {
 
   @Override
   public User create(@RequestBody User user) {
-    user.setId(getNextId(users));
+    user.setId(++idCounter);
     users.put(user.getId(), user);
     return user;
   }

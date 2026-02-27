@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.service;
 
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,13 +39,8 @@ public class FilmService {
   }
 
   public Film update(@RequestBody Film newFilm) throws ValidationException, NotFoundException {
-    Optional<Film> oldfilmOptional = filmStorage.findById(newFilm.getId());
-    if (oldfilmOptional.isEmpty()) {
-      log.warn("Попытка обновления несуществующего фильма: id={}", newFilm.getId());
-      throw new NotFoundException("Фильм с Id " + newFilm.getId() + " не найден");
-    }
 
-    Film oldFilm = oldfilmOptional.get();
+    Film oldFilm = getFilmOrThrow(newFilm.getId());
     // Обновление полей, если они не null
     if (newFilm.getName() != null && !newFilm.getName().isBlank()) {
       oldFilm.setName(newFilm.getName());
