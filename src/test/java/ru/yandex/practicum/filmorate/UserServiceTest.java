@@ -12,7 +12,6 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -141,10 +140,10 @@ public class UserServiceTest {
   @Test
   void getUsersById() throws ValidationException, NotFoundException {
     User user = userService.create(createValidUser());
-    Optional<User> optionalUser = userService.findById(user.getId());
+    User actualUser = userService.findById(user.getId());
 
-    assertTrue(optionalUser.isPresent());
-    assertEquals(user, optionalUser.get());
+    assertNotNull(actualUser);
+    assertEquals(user, actualUser);
   }
 
   @Test
@@ -156,14 +155,14 @@ public class UserServiceTest {
 
     userService.addFriend(user.getId(), friend.getId());
 
-    Optional<User> actualUser = userService.findById(user.getId());
-    Optional<User> actualFriend = userService.findById(friend.getId());
+    User actualUser = userService.findById(user.getId());
+    User actualFriend = userService.findById(friend.getId());
 
-    assertTrue(actualUser.isPresent());
-    assertTrue(actualFriend.isPresent());
+    assertNotNull(actualUser);
+    assertNotNull(actualFriend);
 
-    assertTrue(actualUser.get().getFriends().contains(friend.getId()));
-    assertTrue(actualFriend.get().getFriends().contains(user.getId()));
+    assertTrue(actualUser.getFriends().contains(friend.getId()));
+    assertTrue(actualFriend.getFriends().contains(user.getId()));
   }
 
   @Test
@@ -260,7 +259,8 @@ public class UserServiceTest {
   void deleteFriendFailureWhenDeleteSelfAsFriend() throws ValidationException {
     User user = userService.create(createValidUser());
 
-    assertThrows(ValidationException.class, () -> userService.deleteFriend(user.getId(), user.getId()));
+    assertThrows(ValidationException.class,
+        () -> userService.deleteFriend(user.getId(), user.getId()));
   }
 
   @Test
@@ -274,7 +274,8 @@ public class UserServiceTest {
   void addFriendFailureWhenAddSelfAsFriend() throws ValidationException, NotFoundException {
     User user = userService.create(createValidUser());
 
-    assertThrows(ValidationException.class, () -> userService.addFriend(user.getId(), user.getId()));
+    assertThrows(ValidationException.class,
+        () -> userService.addFriend(user.getId(), user.getId()));
   }
 
   @Test

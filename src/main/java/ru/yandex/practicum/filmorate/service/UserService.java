@@ -31,13 +31,8 @@ public class UserService {
     return userStorage.findAll();
   }
 
-  public Optional<User> findById(int id) throws NotFoundException {
-    Optional<User> userOptional = userStorage.findById(id);
-    if (userOptional.isEmpty()) {
-      log.warn("Не найден пользователь: id={}", id);
-      throw new NotFoundException("Пользователь с Id " + id + " не найден");
-    }
-    return userOptional;
+  public User findById(int id) throws NotFoundException {
+    return getUserOrThrow(id);
   }
 
   public User create(@RequestBody User user) throws ValidationException {
@@ -92,10 +87,7 @@ public class UserService {
   }
 
   public void addFriend(int id, int friendId) throws NotFoundException, ValidationException {
-    if (id == friendId) {
-      log.warn("Попытка добавить самого себя в друзья: id={}", id);
-      throw new ValidationException("Пользователь не может добавить самого себя в друзья");
-    }
+    checkNotEqualsId(id, friendId, "Попытка добавить самого себя в друзья: id=" + id);
     User user = getUserOrThrow(id);
     User friend = getUserOrThrow(friendId);
 
@@ -109,17 +101,12 @@ public class UserService {
   public Collection<User> findAllFriendsById(int id) throws NotFoundException {
     User user = getUserOrThrow(id);
 
-    return user.getFriends().stream()
-        .map(userStorage::findById)
-        .flatMap(Optional::stream)
+    return user.getFriends().stream().map(userStorage::findById).flatMap(Optional::stream)
         .collect(Collectors.toList());
   }
 
   public void deleteFriend(int id, int friendId) throws NotFoundException, ValidationException {
-    if (id == friendId) {
-      log.warn("Попытка удаления самого себя из друзей: id={}", id);
-      throw new ValidationException("Попытка удаления самого себя из друзей: id=" + id);
-    }
+    checkNotEqualsId(id, friendId, "Попытка удаления самого себя из друзей: id=" + id);
     User user = getUserOrThrow(id);
     User friend = getUserOrThrow(friendId);
 
@@ -144,11 +131,10 @@ public class UserService {
 
   public User getUserOrThrow(int id) throws NotFoundException {
 
-    return userStorage.findById(id)
-        .orElseThrow(() -> {
-          log.warn("Не найден пользователь: id = {}", id);
-          return new NotFoundException("Пользователь с Id " + id + " не найден");
-        });
+    return userStorage.findById(id).orElseThrow(() -> {
+      log.warn("Не найден пользователь: id = {}", id);
+      return new NotFoundException("Пользователь с Id " + id + " не найден");
+    });
   }
 
   public Collection<User> getCommonFriends(int userId, int otherId) throws NotFoundException {
@@ -156,8 +142,14 @@ public class UserService {
     User friend = getUserOrThrow(otherId);
     Set<Integer> commonIds = new HashSet<>(user.getFriends());
     commonIds.retainAll(friend.getFriends());
-    return commonIds.stream()
-        .map(this::getUserOrThrow)
-        .collect(Collectors.toList());
+    return commonIds.stream().map(this::getUserOrThrow).collect(Collectors.toList());
+  }
+
+  private void checkNotEqualsId(int userId, int friendId, String message)
+      throws ValidationException {
+    if (userId == friendId) {
+      log.warn(message);
+      throw new ValidationException(message);
+    }
   }
 }

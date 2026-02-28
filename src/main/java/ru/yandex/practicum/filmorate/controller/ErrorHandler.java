@@ -26,4 +26,11 @@ public class ErrorHandler {
     log.error("400: {}", e.getMessage());
     return new ErrorResponse(e.getMessage());
   }
+
+  @ExceptionHandler
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ErrorResponse handleThrowable(final Throwable e) {
+    log.error("Произошла непредвиденная ошибка: {}", e.getMessage(), e);
+    return new ErrorResponse("Произошла непредвиденная ошибка.");
+  }
 }

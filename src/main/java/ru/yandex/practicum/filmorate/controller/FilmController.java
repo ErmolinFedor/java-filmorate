@@ -25,6 +25,7 @@ import ru.yandex.practicum.filmorate.service.FilmService;
 @RestController
 @RequestMapping("/films")
 public class FilmController {
+
   private final FilmService filmService;
 
   @Autowired
@@ -39,7 +40,8 @@ public class FilmController {
   }
 
   @GetMapping("/popular")
-  public Collection<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+  public Collection<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count)
+      throws ValidationException {
     log.info("Получен запрос GET /films/popular?count={count} на получение топ фильмов по лайкам");
     return filmService.getPopularFilms(count);
   }

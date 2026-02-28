@@ -46,8 +46,8 @@ public class FilmServiceTest {
   void setUp() {
     FilmStorage filmStorage = new InMemoryFilmStorage();
     UserStorage userStorage = new InMemoryUserStorage();
+    filmService = new FilmService(filmStorage, userStorage);
     userService = new UserService(userStorage);
-    filmService = new FilmService(filmStorage, userService);
     factory = Validation.buildDefaultValidatorFactory();
     validator = factory.getValidator();
   }
@@ -242,6 +242,13 @@ public class FilmServiceTest {
     assertThrows(NotFoundException.class, () -> {
       filmService.removeLike(999, 1);
     });
+  }
+
+  @Test
+  void getaFailurePopularFilmsWithNegativeLimit() throws ValidationException {
+    filmService.create(createValidFilm());
+
+    assertThrows(ValidationException.class, () -> filmService.getPopularFilms(-1));
   }
 
   @Test

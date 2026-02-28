@@ -5,7 +5,6 @@ import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 import jakarta.validation.Valid;
 import java.util.Collection;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,6 +25,7 @@ import ru.yandex.practicum.filmorate.service.UserService;
 @RestController
 @RequestMapping("/users")
 public class UserController {
+
   private final UserService userService;
 
   @Autowired
@@ -40,21 +40,21 @@ public class UserController {
   }
 
   @GetMapping("/{userId}")
-  public Optional<User> findById(@PathVariable int userId) throws NotFoundException {
+  public User findById(@PathVariable int userId) throws NotFoundException {
     log.info("Получен запрос GET /users/userId на получение пользователя с id={}", userId);
     return userService.findById(userId);
   }
 
   @GetMapping("/{userId}/friends")
   public Collection<User> findAllFriendsById(@PathVariable int userId) throws NotFoundException {
-    log.info(
-        "Получен запрос GET /users/{id}/friends на получение списка друзей пользователя id={}",
+    log.info("Получен запрос GET /users/{id}/friends на получение списка друзей пользователя id={}",
         userId);
     return userService.findAllFriendsById(userId);
   }
 
   @GetMapping("/{userId}/friends/common/{otherId}")
-  public Collection<User> getCommonFriends(@PathVariable int userId, @PathVariable int otherId) throws NotFoundException {
+  public Collection<User> getCommonFriends(@PathVariable int userId, @PathVariable int otherId)
+      throws NotFoundException {
     log.info(
         "Получен запрос GET /users/{}/friends/common/{} на получение списка общих друзей с пользователем",
         userId, otherId);
@@ -76,15 +76,19 @@ public class UserController {
 
   @PutMapping("/{id}/friends/{friendId}")
   @ResponseStatus(NO_CONTENT)
-  public void addFriend(@PathVariable int id, @PathVariable int friendId) throws ValidationException, NotFoundException {
-    log.info("Получен запрос PUT /users/{id}/friends/{friendId} с id: {} и friendId: {}", id, friendId);
+  public void addFriend(@PathVariable int id, @PathVariable int friendId)
+      throws ValidationException, NotFoundException {
+    log.info("Получен запрос PUT /users/{id}/friends/{friendId} с id: {} и friendId: {}", id,
+        friendId);
     userService.addFriend(id, friendId);
   }
 
   @DeleteMapping("/{id}/friends/{friendId}")
   @ResponseStatus(NO_CONTENT)
-  public void deleteFriend(@PathVariable int id, @PathVariable int friendId) throws ValidationException, NotFoundException {
-    log.info("Получен запрос DELETE /users/{id}/friends/{friendId} с id: {} и friendId: {}", id, friendId);
+  public void deleteFriend(@PathVariable int id, @PathVariable int friendId)
+      throws ValidationException, NotFoundException {
+    log.info("Получен запрос DELETE /users/{id}/friends/{friendId} с id: {} и friendId: {}", id,
+        friendId);
     userService.deleteFriend(id, friendId);
   }
 }
