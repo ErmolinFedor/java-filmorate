@@ -1,27 +1,38 @@
 package ru.yandex.practicum.filmorate.service;
 
-import static ru.yandex.practicum.filmorate.utils.Utils.getNextId;
-
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 @Service
+@Slf4j
 public class UserService {
 
-  private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-  private final Map<Integer, User> users = new HashMap<>();
+  private final UserStorage userStorage;
+
+  @Autowired
+  public UserService(@Qualifier("inMemoryUserStorage") UserStorage userStorage) {
+    this.userStorage = userStorage;
+  }
 
   public Collection<User> findAll() {
-    return users.values();
+    return userStorage.findAll();
+  }
+
+  public User findById(int id) throws NotFoundException {
+    return getUserOrThrow(id);
   }
 
   public User create(@RequestBody User user) throws ValidationException {
@@ -31,59 +42,114 @@ public class UserService {
       user.setName(user.getLogin());
     }
 
-    user.setId(getNextId(users));
-    users.put(user.getId(), user);
-    logger.info("Добавлен пользователь: id={}, login={}", user.getId(), user.getLogin());
+    user = userStorage.create(user);
+    log.info("Добавлен пользователь: id={}, login={}", user.getId(), user.getLogin());
     return user;
   }
 
   public User update(@RequestBody User newUser) throws ValidationException, NotFoundException {
-    if (!users.containsKey(newUser.getId())) {
-      logger.warn("Ошибка обновления: пользователь с id={} не найден", newUser.getId());
-      throw new NotFoundException("Пользователь с Id " + newUser.getId() + " не найден");
-    }
-    User oldUser = users.get(newUser.getId());
+    User oldUser = getUserOrThrow(newUser.getId());
     if (newUser.getBirthday() != null) {
       if (newUser.getBirthday().isAfter(LocalDate.now())) {
-        logger.warn("Ошибка обновления: дата рождения {} не может быть в будущем.",
+        log.warn("Ошибка обновления: дата рождения {} не может быть в будущем.",
             newUser.getBirthday());
         throw new ValidationException("Дата рождения не может быть в будущем.");
       }
       oldUser.setBirthday(newUser.getBirthday());
-      logger.trace("обновлено поле: Birthday, новое значение: {}", newUser.getBirthday());
+      log.trace("обновлено поле: Birthday, новое значение: {}", newUser.getBirthday());
     }
 
     if (newUser.getLogin() != null) {
       validateLogin(newUser);
       oldUser.setLogin(newUser.getLogin());
-      logger.trace("обновлено поле: Login, новое значение: {}", newUser.getLogin());
+      log.trace("обновлено поле: Login, новое значение: {}", newUser.getLogin());
     }
 
     if (newUser.getName() != null && !newUser.getName().isBlank()) {
       oldUser.setName(newUser.getName());
-      logger.debug("обновлено поле: Name, новое значение: {}", newUser.getName());
+      log.debug("обновлено поле: Name, новое значение: {}", newUser.getName());
     }
 
     if (newUser.getEmail() != null) {
       if (newUser.getEmail().isBlank() || !newUser.getEmail().contains("@")) {
-        logger.error("Пользователь {} не прошел валидацию по полю Email: {}", newUser.getName(),
+        log.error("Пользователь {} не прошел валидацию по полю Email: {}", newUser.getName(),
             newUser.getEmail());
         throw new ValidationException(
             "Электронная почта не может быть пустой и должна содержать символ @");
       }
       oldUser.setEmail(newUser.getEmail());
-      logger.debug("обновлено поле: Email, новое значение: {}", newUser.getEmail());
+      log.debug("обновлено поле: Email, новое значение: {}", newUser.getEmail());
     }
 
-    logger.info("Пользователь id={} успешно обновлен", newUser.getId());
+    userStorage.update(oldUser);
+    log.info("Пользователь id={} успешно обновлен", oldUser.getId());
     return oldUser;
+  }
+
+  public void addFriend(int id, int friendId) throws NotFoundException, ValidationException {
+    checkNotEqualsId(id, friendId, "Попытка добавить самого себя в друзья: id=" + id);
+    User user = getUserOrThrow(id);
+    User friend = getUserOrThrow(friendId);
+
+    user.getFriends().add(friendId);
+    friend.getFriends().add(user.getId());
+
+    userStorage.update(user);
+    userStorage.update(friend);
+  }
+
+  public Collection<User> findAllFriendsById(int id) throws NotFoundException {
+    User user = getUserOrThrow(id);
+
+    return user.getFriends().stream().map(userStorage::findById).flatMap(Optional::stream)
+        .collect(Collectors.toList());
+  }
+
+  public void deleteFriend(int id, int friendId) throws NotFoundException, ValidationException {
+    checkNotEqualsId(id, friendId, "Попытка удаления самого себя из друзей: id=" + id);
+    User user = getUserOrThrow(id);
+    User friend = getUserOrThrow(friendId);
+
+    boolean removedFromUser = user.getFriends().remove(friendId);
+    boolean removedFromFriend = friend.getFriends().remove(id);
+
+    if (removedFromUser || removedFromFriend) {
+      userStorage.update(user);
+      userStorage.update(friend);
+      log.info("Пользователи {} и {} успешно удалены из друзей друг у друга", id, friendId);
+    } else {
+      log.info("Пользователи {} и {} не являлись друзьями, удаление не требуется", id, friendId);
+    }
   }
 
   private void validateLogin(User user) throws ValidationException {
     if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-      logger.error("Пользователь {} не прошел валидацию по полю: {}", user.getName(),
-          user.getLogin());
+      log.error("Пользователь {} не прошел валидацию по полю: {}", user.getName(), user.getLogin());
       throw new ValidationException("Логин не может быть пустым и содержать пробелы");
+    }
+  }
+
+  public User getUserOrThrow(int id) throws NotFoundException {
+
+    return userStorage.findById(id).orElseThrow(() -> {
+      log.warn("Не найден пользователь: id = {}", id);
+      return new NotFoundException("Пользователь с Id " + id + " не найден");
+    });
+  }
+
+  public Collection<User> getCommonFriends(int userId, int otherId) throws NotFoundException {
+    User user = getUserOrThrow(userId);
+    User friend = getUserOrThrow(otherId);
+    Set<Integer> commonIds = new HashSet<>(user.getFriends());
+    commonIds.retainAll(friend.getFriends());
+    return commonIds.stream().map(this::getUserOrThrow).collect(Collectors.toList());
+  }
+
+  private void checkNotEqualsId(int userId, int friendId, String message)
+      throws ValidationException {
+    if (userId == friendId) {
+      log.warn(message);
+      throw new ValidationException(message);
     }
   }
 }
