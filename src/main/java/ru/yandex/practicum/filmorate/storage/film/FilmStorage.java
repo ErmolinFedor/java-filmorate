@@ -14,4 +14,10 @@ public interface FilmStorage {
   Film update(@RequestBody Film newFilm);
 
   Optional<Film> findById(int id);
+
+  void addLike(int filmId, int userId);
+
+  void deleteLike(int filmId, int userId);
+
+  Collection<Film> getPopular(int count);
 }

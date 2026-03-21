@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -35,5 +36,29 @@ public class InMemoryFilmStorage implements FilmStorage {
   @Override
   public Optional<Film> findById(int id) {
     return Optional.ofNullable(films.get(id));
+  }
+
+  @Override
+  public void addLike(int filmId, int userId) {
+    Film film = films.get(filmId);
+    if (film != null) {
+      film.getLikes().add(userId);
+    }
+  }
+
+  @Override
+  public void deleteLike(int filmId, int userId) {
+    Film film = films.get(filmId);
+    if (film != null) {
+      film.getLikes().remove(userId);
+    }
+  }
+
+  @Override
+  public Collection<Film> getPopular(int count) {
+    return films.values().stream()
+        .sorted((f1, f2) -> f2.getLikes().size() - f1.getLikes().size())
+        .limit(count)
+        .collect(Collectors.toList());
   }
 }

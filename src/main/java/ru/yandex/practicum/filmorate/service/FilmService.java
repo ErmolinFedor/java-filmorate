@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.service;
 
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,7 +10,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.genres.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 @Slf4j
@@ -20,12 +22,18 @@ public class FilmService {
 
   private final FilmStorage filmStorage;
   private final UserStorage userStorage;
+  private final MpaStorage mpaStorage;
+  private final GenreStorage genreStorage;
 
   @Autowired
-  public FilmService(@Qualifier("inMemoryFilmStorage") FilmStorage filmStorage,
-      @Qualifier("inMemoryUserStorage") UserStorage userStorage) {
+  public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
+      @Qualifier("userDbStorage") UserStorage userStorage,
+      @Qualifier("mpaDbStorage") MpaStorage mpaStorage,
+      @Qualifier("genreDbStorage") GenreStorage genreStorage) {
     this.filmStorage = filmStorage;
     this.userStorage = userStorage;
+    this.mpaStorage = mpaStorage;
+    this.genreStorage = genreStorage;
   }
 
   public Collection<Film> findAll() {
@@ -34,6 +42,19 @@ public class FilmService {
 
   public Film create(@RequestBody Film film) throws ValidationException {
     validateDescription(film);
+
+    if (film.getMpa() != null) {
+      int mpaId = film.getMpa().getId();
+      mpaStorage.findById(mpaId)
+          .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id=" + mpaId + " не найден"));
+    }
+
+    if (film.getGenres() != null) {
+      for (Genre genre : film.getGenres()) {
+        genreStorage.findById(genre.getId())
+            .orElseThrow(() -> new NotFoundException("Жанр с id=" + genre.getId() + " не найден"));
+      }
+    }
 
     film = filmStorage.create(film);
     log.info("Добавлен новый фильм: id={}, name={}", film.getId(), film.getName());
@@ -73,25 +94,19 @@ public class FilmService {
   }
 
   public void addLike(int id, int userId) throws NotFoundException {
-    Film film = getFilmOrThrow(id);
+    getFilmOrThrow(id);
     checkUserExists(userId);
 
-    film.getLikes().add(userId);
-    filmStorage.update(film);
+    filmStorage.addLike(id, userId);
+    log.info("Пользователь {} поставил лайк фильму {}", userId, id);
   }
 
   public void removeLike(int filmId, int userId) throws NotFoundException {
-    Film film = getFilmOrThrow(filmId);
+    getFilmOrThrow(filmId);
     checkUserExists(userId);
 
-    boolean removed = film.getLikes().remove(userId);
-
-    if (removed) {
-      filmStorage.update(film);
-      log.info("Пользователь id={} удалил лайк с фильма id={}", userId, filmId);
-    } else {
-      log.info("Лайк от пользователя id={} на фильме id={} не найден", userId, filmId);
-    }
+    filmStorage.deleteLike(filmId, userId);
+    log.info("Пользователь {} удалил лайк с фильма {}", userId, filmId);
   }
 
   private Film getFilmOrThrow(int id) throws NotFoundException {
@@ -131,9 +146,7 @@ public class FilmService {
       throw new ValidationException("Количество фильмов (count) должно быть положительным числом.");
     }
 
-    return filmStorage.findAll().stream()
-        .sorted((f1, f2) -> f2.getLikes().size() - f1.getLikes().size()).limit(count)
-        .collect(Collectors.toList());
+    return filmStorage.getPopular(count);
   }
 
   private void checkUserExists(int id) throws NotFoundException {
@@ -141,5 +154,10 @@ public class FilmService {
       log.warn("Не найден пользователь: id = {}", id);
       return new NotFoundException("Пользователь с Id " + id + " не найден");
     });
+  }
+
+  public Film getFilmById(int id) {
+    return filmStorage.findById(id)
+        .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
   }
 }

@@ -7,43 +7,24 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Set;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-public class UserServiceTest {
+public abstract class UserServiceTest<T extends UserStorage> extends BaseServiceTest {
 
-  private static Validator validator;
-  private static ValidatorFactory factory;
-  private UserStorage userStorage;
-  private UserService userService;
-
-  @AfterAll
-  static void tearDown() {
-    if (factory != null) {
-      factory.close();
-    }
-  }
+  protected UserStorage userStorage;
+  protected UserService userService;
 
   @BeforeEach
-  void setUp() {
-    userStorage = new InMemoryUserStorage();
-    userService = new UserService(userStorage);
-    factory = Validation.buildDefaultValidatorFactory();
-    validator = factory.getValidator();
-  }
+  protected abstract void setUp();
 
   @Test
   void createUserSuccessfully() throws ValidationException {
@@ -90,12 +71,8 @@ public class UserServiceTest {
     User user = userService.create(createValidUser());
     LocalDate birthday = LocalDate.of(2014, 11, 1);
 
-    User updatedData = new User();
-    updatedData.setId(user.getId());
-    updatedData.setLogin("new_login");
-    updatedData.setEmail("new@mail.ru");
-    updatedData.setName("New Name");
-    updatedData.setBirthday(birthday);
+    User updatedData = User.builder().id(user.getId()).login("new_login").email("new@mail.ru")
+        .name("New Name").birthday(birthday).build();
 
     User result = userService.update(updatedData);
 
@@ -110,12 +87,8 @@ public class UserServiceTest {
     User user = userService.create(createValidUser());
     LocalDate birthday = LocalDate.of(2014, 11, 1);
 
-    User updatedData = new User();
-    updatedData.setId(user.getId());
-    updatedData.setLogin("new_login");
-    updatedData.setEmail("new@test.ru");
-    updatedData.setName("");
-    updatedData.setBirthday(birthday);
+    User updatedData = User.builder().id(user.getId()).login("new_login").email("new@test.ru")
+        .name("").birthday(birthday).build();
 
     User result = userService.update(updatedData);
 
@@ -290,9 +263,7 @@ public class UserServiceTest {
   void updatedFailureWithUserWithWrongEmail() throws ValidationException {
     User user = userService.create(createValidUser());
 
-    User updatedData = new User();
-    updatedData.setId(user.getId());
-    updatedData.setEmail("wrong mail");
+    User updatedData = User.builder().id(user.getId()).email("wrong mail").build();
     assertThrows(ValidationException.class, () -> userService.update(updatedData));
   }
 
@@ -332,9 +303,8 @@ public class UserServiceTest {
   void updateFailureWithBirthdayInFuture() throws ValidationException {
     User user = userService.create(createValidUser());
 
-    User updatedData = new User();
-    updatedData.setId(user.getId());
-    updatedData.setBirthday(LocalDate.now().plusDays(1));
+    User updatedData = User.builder().id(user.getId()).birthday(LocalDate.now().plusDays(1))
+        .build();
     assertThrows(ValidationException.class, () -> userService.update(updatedData));
   }
 
@@ -347,11 +317,7 @@ public class UserServiceTest {
   }
 
   private User createValidUser() {
-    User user = new User();
-    user.setEmail("test@test.ru");
-    user.setLogin("user");
-    user.setName("Common Name");
-    user.setBirthday(LocalDate.of(1985, 9, 20));
-    return user;
+    return User.builder().email("test@test.ru").login("user").name("Common Name")
+        .birthday(LocalDate.of(1985, 9, 20)).build();
   }
 }

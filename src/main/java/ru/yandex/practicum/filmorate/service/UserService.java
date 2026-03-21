@@ -2,10 +2,6 @@ package ru.yandex.practicum.filmorate.service;
 
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,7 +19,7 @@ public class UserService {
   private final UserStorage userStorage;
 
   @Autowired
-  public UserService(@Qualifier("inMemoryUserStorage") UserStorage userStorage) {
+  public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
     this.userStorage = userStorage;
   }
 
@@ -88,38 +84,24 @@ public class UserService {
 
   public void addFriend(int id, int friendId) throws NotFoundException, ValidationException {
     checkNotEqualsId(id, friendId, "Попытка добавить самого себя в друзья: id=" + id);
-    User user = getUserOrThrow(id);
-    User friend = getUserOrThrow(friendId);
-
-    user.getFriends().add(friendId);
-    friend.getFriends().add(user.getId());
-
-    userStorage.update(user);
-    userStorage.update(friend);
+    getUserOrThrow(id);
+    getUserOrThrow(friendId);
+    userStorage.addFriend(id, friendId);
+    log.info("Пользователь {} добавил в друзья {}", id, friendId);
   }
 
   public Collection<User> findAllFriendsById(int id) throws NotFoundException {
-    User user = getUserOrThrow(id);
+    getUserOrThrow(id);
 
-    return user.getFriends().stream().map(userStorage::findById).flatMap(Optional::stream)
-        .collect(Collectors.toList());
+    return userStorage.getFriends(id);
   }
 
   public void deleteFriend(int id, int friendId) throws NotFoundException, ValidationException {
     checkNotEqualsId(id, friendId, "Попытка удаления самого себя из друзей: id=" + id);
-    User user = getUserOrThrow(id);
-    User friend = getUserOrThrow(friendId);
 
-    boolean removedFromUser = user.getFriends().remove(friendId);
-    boolean removedFromFriend = friend.getFriends().remove(id);
-
-    if (removedFromUser || removedFromFriend) {
-      userStorage.update(user);
-      userStorage.update(friend);
-      log.info("Пользователи {} и {} успешно удалены из друзей друг у друга", id, friendId);
-    } else {
-      log.info("Пользователи {} и {} не являлись друзьями, удаление не требуется", id, friendId);
-    }
+    getUserOrThrow(id);
+    getUserOrThrow(friendId);
+    userStorage.removeFriend(id, friendId);
   }
 
   private void validateLogin(User user) throws ValidationException {
@@ -138,11 +120,9 @@ public class UserService {
   }
 
   public Collection<User> getCommonFriends(int userId, int otherId) throws NotFoundException {
-    User user = getUserOrThrow(userId);
-    User friend = getUserOrThrow(otherId);
-    Set<Integer> commonIds = new HashSet<>(user.getFriends());
-    commonIds.retainAll(friend.getFriends());
-    return commonIds.stream().map(this::getUserOrThrow).collect(Collectors.toList());
+    getUserOrThrow(userId);
+    getUserOrThrow(otherId);
+    return userStorage.getCommonFriends(userId, otherId);
   }
 
   private void checkNotEqualsId(int userId, int friendId, String message)

@@ -39,6 +39,12 @@ public class FilmController {
     return filmService.findAll();
   }
 
+  @GetMapping("/{id}")
+  public Film findById(@PathVariable int id) {
+    log.info("Получен запрос GET /films/{}", id);
+    return filmService.getFilmById(id);
+  }
+
   @GetMapping("/popular")
   public Collection<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count)
       throws ValidationException {
