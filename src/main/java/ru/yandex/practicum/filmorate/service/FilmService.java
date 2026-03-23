@@ -2,6 +2,8 @@ package ru.yandex.practicum.filmorate.service;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -49,16 +51,20 @@ public class FilmService {
           .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id=" + mpaId + " не найден"));
     }
 
-    if (film.getGenres() != null) {
-      for (Genre genre : film.getGenres()) {
-        genreStorage.findById(genre.getId())
-            .orElseThrow(() -> new NotFoundException("Жанр с id=" + genre.getId() + " не найден"));
+    if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+      List<Integer> genreIds = film.getGenres().stream()
+          .map(Genre::getId)
+          .distinct()
+          .collect(Collectors.toList());
+
+      List<Genre> existingGenres = genreStorage.findAllByIds(genreIds);
+
+      if (existingGenres.size() != genreIds.size()) {
+        throw new NotFoundException("Один или несколько жанров не найдены в базе данных");
       }
     }
 
-    film = filmStorage.create(film);
-    log.info("Добавлен новый фильм: id={}, name={}", film.getId(), film.getName());
-    return film;
+    return filmStorage.create(film);
   }
 
   public Film update(@RequestBody Film newFilm) throws ValidationException, NotFoundException {
