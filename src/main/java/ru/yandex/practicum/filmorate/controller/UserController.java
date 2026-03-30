@@ -69,7 +69,7 @@ public class UserController {
   }
 
   @PutMapping
-  public User update(@RequestBody User newUser) throws ValidationException, NotFoundException {
+  public User update(@Valid @RequestBody User newUser) throws ValidationException, NotFoundException {
     log.info("Получен запрос PUT /users с телом: {}", newUser);
     return userService.update(newUser);
   }
