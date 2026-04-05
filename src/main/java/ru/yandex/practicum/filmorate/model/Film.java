@@ -6,16 +6,17 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.DurationDeserializer;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import ru.yandex.practicum.filmorate.annotation.DateFirstMovie;
 import ru.yandex.practicum.filmorate.annotation.PositiveDuration;
+
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Builder
 @Data
@@ -42,6 +43,9 @@ public class Film {
 
   @Builder.Default
   private LinkedHashSet<Genre> genres = new LinkedHashSet<>();
+
+  @Builder.Default
+  private LinkedHashSet<Director> directors = new LinkedHashSet<>();
 
   @JsonIgnore
   @Builder.Default

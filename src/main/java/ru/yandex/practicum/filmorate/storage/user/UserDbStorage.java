@@ -1,13 +1,14 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
-import java.util.Collection;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dal.BaseRepository;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.mapper.UserRowMapper;
+
+import java.util.Collection;
+import java.util.Optional;
 
 @Component
 @Slf4j

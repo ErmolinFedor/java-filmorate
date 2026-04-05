@@ -1,9 +1,5 @@
 package ru.yandex.practicum.filmorate.dal;
 
-import java.sql.PreparedStatement;
-import java.sql.Statement;
-import java.util.Collection;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -11,8 +7,13 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.yandex.practicum.filmorate.exeption.InternalServerException;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.util.Collection;
+import java.util.Optional;
+
 @RequiredArgsConstructor
-public class BaseRepository<T>  {
+public class BaseRepository<T> {
   protected final JdbcTemplate jdbc;
   protected final RowMapper<T> mapper;
   private final Class<T> entityType;
