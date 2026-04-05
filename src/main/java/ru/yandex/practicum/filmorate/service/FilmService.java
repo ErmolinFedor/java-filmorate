@@ -7,10 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
-import ru.yandex.practicum.filmorate.model.Director;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.SortBy;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genres.GenreStorage;
@@ -205,5 +202,9 @@ public class FilmService {
 
   public Collection<Film> getFilmsByDirector(int directorId, SortBy sortBy) {
     return filmStorage.getFilmsByDirector(directorId, sortBy);
+  }
+
+  public Collection<Film> searchByDirectorAndName(String query, List<SearchType> by) {
+    return filmStorage.searchByDirectorAndName(query, by);
   }
 }
