@@ -44,7 +44,7 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
           "JOIN film_directors AS fd ON f.id = fd.film_id\n" +
           "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id\n" +
           "WHERE fd.director_id = ?\n" +
-          "ORDER BY f.release_date DESC;";
+          "ORDER BY f.release_date ASC;";
 
   private static final String GET_BY_DIRECTORY_SORT_BY_LIKES_QUERY =
       "SELECT \n" +
@@ -233,6 +233,7 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
     String inSql = String.join(",", Collections.nCopies(filmIds.size(), "?"));
 
     enrichByLikes(films, filmIds, inSql);
+    enrichByGenres(films, filmIds, inSql);
     enrichByDirectors(films, filmIds, inSql);
     return films;
   }
@@ -250,7 +251,7 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
 
     String inSql = String.join(",", Collections.nCopies(filmIds.size(), "?"));
     enrichByLikes(films, filmIds, inSql);
-
+    enrichByGenres(films, filmIds, inSql);
     enrichByDirectors(films, filmIds, inSql);
 
     return films;
@@ -267,6 +268,24 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
           .filter(f -> f.getId() == filmId)
           .findFirst()
           .ifPresent(f -> f.getLikes().add(userId));
+    }, filmIds.toArray());
+  }
+
+  private void enrichByGenres(List<Film> films, List<Integer> filmIds, String inSql) {
+    String sql = "SELECT fg.film_id, fg.genre_id, g.name " +
+        "FROM film_genres fg " +
+        "JOIN genres g ON g.id = fg.genre_id " +
+        "WHERE fg.film_id IN (" + inSql + ")";
+
+    jdbc.query(sql, (rs) -> {
+      int filmId = rs.getInt("film_id");
+      int genreId = rs.getInt("genre_id");
+      String genreName = rs.getString("name");
+
+      films.stream()
+          .filter(f -> f.getId() == filmId)
+          .findFirst()
+          .ifPresent(f -> f.getGenres().add(Genre.builder().id(genreId).name(genreName).build()));
     }, filmIds.toArray());
   }
 
@@ -300,7 +319,7 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
 
     String inSql = String.join(",", Collections.nCopies(filmIds.size(), "?"));
     enrichByLikes(films, filmIds, inSql);
-
+    enrichByGenres(films, filmIds, inSql);
     enrichByDirectors(films, filmIds, inSql);
 
     return films;

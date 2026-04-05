@@ -111,6 +111,20 @@ public class FilmService {
       log.debug("обновлено поле: Duration, новое значение: {}", newFilm.getDuration());
     }
 
+    if (newFilm.getGenres() != null && !newFilm.getGenres().isEmpty()) {
+      List<Integer> genreIds = newFilm.getGenres().stream()
+          .map(Genre::getId)
+          .distinct()
+          .collect(Collectors.toList());
+
+      List<Genre> existingGenres = genreStorage.findAllByIds(genreIds);
+
+      if (existingGenres.size() != genreIds.size()) {
+        throw new NotFoundException("Один или несколько жанров не найдены в базе данных");
+      }
+      oldFilm.setGenres(newFilm.getGenres());
+    }
+
     if (newFilm.getDirectors() != null) {
       List<Integer> directorIds = newFilm.getDirectors().stream()
           .map(Director::getId)
