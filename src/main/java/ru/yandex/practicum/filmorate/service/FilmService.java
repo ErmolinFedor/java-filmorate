@@ -77,9 +77,9 @@ public class FilmService {
           .distinct()
           .toList();
 
-      List<Director> existingGenres = directorStorage.findAllByIds(directorIds);
+      List<Director> existingDirectors = directorStorage.findAllByIds(directorIds);
 
-      if (existingGenres.size() != directorIds.size()) {
+      if (existingDirectors.size() != directorIds.size()) {
         throw new NotFoundException("Один или несколько режиссёров не найдены в базе данных");
       }
     }
@@ -112,6 +112,22 @@ public class FilmService {
       validateDuration(newFilm);
       oldFilm.setDuration(newFilm.getDuration());
       log.debug("обновлено поле: Duration, новое значение: {}", newFilm.getDuration());
+    }
+
+    if (newFilm.getDirectors() != null) {
+      List<Integer> directorIds = newFilm.getDirectors().stream()
+          .map(Director::getId)
+          .distinct()
+          .toList();
+
+      List<Director> existingDirectors = directorStorage.findAllByIds(directorIds);
+
+      if (existingDirectors.size() != directorIds.size()) {
+        throw new NotFoundException("Один или несколько режиссёров не найдены в базе данных");
+      }
+
+      oldFilm.setDirectors(newFilm.getDirectors());
+      log.debug("обновлено поле: Director, новое значение: {}", newFilm.getDirectors());
     }
 
     filmStorage.update(oldFilm);
