@@ -377,7 +377,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     Film filmSaved1 = filmService.create(film1);
     Film filmSaved2 = filmService.create(film2);
 
-    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("day", List.of(SearchType.DIRECTOR));
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("day", List.of(SearchType.director));
 
     assertEquals(1, filmsByDirector.size());
     assertIterableEquals(List.of(filmSaved1), filmsByDirector);
@@ -398,7 +398,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     Film filmSaved1 = filmService.create(film1);
     Film filmSaved2 = filmService.create(film2);
 
-    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Groundhog", List.of(SearchType.DIRECTOR));
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Groundhog", List.of(SearchType.director));
 
     assertEquals(2, filmsByDirector.size());
     assertIterableEquals(List.of(filmSaved1, filmSaved2), filmsByDirector);
@@ -420,7 +420,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     Film filmSaved1 = filmService.create(film1);
     Film filmSaved2 = filmService.create(film2);
 
-    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.TITLE));
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.title));
 
     assertEquals(1, filmsByDirector.size());
     assertIterableEquals(List.of(filmSaved1), filmsByDirector);
@@ -442,7 +442,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     Film filmSaved1 = filmService.create(film1);
     Film filmSaved2 = filmService.create(film2);
 
-    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.TITLE, SearchType.DIRECTOR));
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.title, SearchType.director));
 
     assertEquals(2, filmsByDirector.size());
     assertIterableEquals(List.of(filmSaved1, film2), filmsByDirector);

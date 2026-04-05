@@ -216,11 +216,11 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
     List<Object> params = new ArrayList<>();
 
     List<String> conditions = new ArrayList<>();
-    if (by.contains(SearchType.TITLE)) {
+    if (by.contains(SearchType.title)) {
       conditions.add("LOWER(f.name) LIKE ?");
       params.add(searchPattern);
     }
-    if (by.contains(SearchType.DIRECTOR)) {
+    if (by.contains(SearchType.director)) {
       conditions.add("LOWER(d.name) LIKE ?");
       params.add(searchPattern);
     }
