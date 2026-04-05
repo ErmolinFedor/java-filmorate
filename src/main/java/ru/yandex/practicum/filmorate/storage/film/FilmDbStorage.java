@@ -367,7 +367,7 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
       int filmId = rs.getInt("film_id");
       Director director = Director.builder()
           .id(rs.getInt("director_id"))
-          .name(rs.getString("v"))
+          .name(rs.getString("director_name"))
           .build();
 
       Film film = filmMap.get(filmId);

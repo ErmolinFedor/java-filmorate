@@ -359,7 +359,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     Collection<Film> filmsByDirector = filmService.getFilmsByDirector(directorSaved.getId(), SortBy.year);
 
     assertEquals(2, filmsByDirector.size());
-    assertIterableEquals(List.of(filmSaved2, filmSaved1), filmsByDirector);
+    assertIterableEquals(List.of(filmSaved1, filmSaved2), filmsByDirector);
   }
 
   @Test
