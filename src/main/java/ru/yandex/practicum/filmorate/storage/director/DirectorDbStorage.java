@@ -17,7 +17,7 @@ import java.util.Optional;
 public class DirectorDbStorage extends BaseRepository<Director> implements DirectorStorage {
 
   private static final String FIND_ALL_QUERY =
-    "SELECT d.* FROM directors d";
+    "SELECT d.* FROM directors d ORDER BY d.id ASC";
   private static final String FIND_BY_ID_QUERY =
     "SELECT d.* FROM directors d WHERE d.id = ?";
   private static final String INSERT_QUERY =

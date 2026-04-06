@@ -7,10 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
-import ru.yandex.practicum.filmorate.model.Director;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.SortBy;
+import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genres.GenreStorage;
@@ -114,6 +111,20 @@ public class FilmService {
       log.debug("обновлено поле: Duration, новое значение: {}", newFilm.getDuration());
     }
 
+    if (newFilm.getGenres() != null && !newFilm.getGenres().isEmpty()) {
+      List<Integer> genreIds = newFilm.getGenres().stream()
+          .map(Genre::getId)
+          .distinct()
+          .collect(Collectors.toList());
+
+      List<Genre> existingGenres = genreStorage.findAllByIds(genreIds);
+
+      if (existingGenres.size() != genreIds.size()) {
+        throw new NotFoundException("Один или несколько жанров не найдены в базе данных");
+      }
+      oldFilm.setGenres(newFilm.getGenres());
+    }
+
     if (newFilm.getDirectors() != null) {
       List<Integer> directorIds = newFilm.getDirectors().stream()
           .map(Director::getId)
@@ -205,5 +216,9 @@ public class FilmService {
 
   public Collection<Film> getFilmsByDirector(int directorId, SortBy sortBy) {
     return filmStorage.getFilmsByDirector(directorId, sortBy);
+  }
+
+  public Collection<Film> searchByDirectorAndName(String query, List<SearchType> by) {
+    return filmStorage.searchByDirectorAndName(query, by);
   }
 }

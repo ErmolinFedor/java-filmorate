@@ -7,10 +7,12 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.SearchType;
 import ru.yandex.practicum.filmorate.model.SortBy;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.Collection;
+import java.util.List;
 
 import static org.springframework.http.HttpStatus.CREATED;
 
@@ -51,6 +53,12 @@ public class FilmController {
     log.info("Получен запрос GET /films/director/{directorId}?sortBy=[year,likes] на получение фильмов" +
         " режиссера отсортированных по количеству лайков или году выпуска");
     return filmService.getFilmsByDirector(directorId, sortBy);
+  }
+
+  @GetMapping("/search")
+  public Collection<Film> search(@RequestParam String query, @RequestParam List<SearchType> by) {
+    log.info("Получен запрос GET /films/search?searchTypes=[director,title] на поиск по названию фильмов и по режиссёру");
+    return filmService.searchByDirectorAndName(query, by);
   }
 
   @PostMapping
