@@ -1,9 +1,5 @@
 package ru.yandex.practicum.filmorate.service;
 
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -11,12 +7,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.SortBy;
+import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genres.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
+
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,16 +30,19 @@ public class FilmService {
   private final UserStorage userStorage;
   private final MpaStorage mpaStorage;
   private final GenreStorage genreStorage;
+  private final DirectorStorage directorStorage;
 
   @Autowired
   public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
-      @Qualifier("userDbStorage") UserStorage userStorage,
-      @Qualifier("mpaDbStorage") MpaStorage mpaStorage,
-      @Qualifier("genreDbStorage") GenreStorage genreStorage) {
+                     @Qualifier("userDbStorage") UserStorage userStorage,
+                     @Qualifier("mpaDbStorage") MpaStorage mpaStorage,
+                     @Qualifier("genreDbStorage") GenreStorage genreStorage,
+                     @Qualifier("directorDbStorage") DirectorStorage directorStorage) {
     this.filmStorage = filmStorage;
     this.userStorage = userStorage;
     this.mpaStorage = mpaStorage;
     this.genreStorage = genreStorage;
+    this.directorStorage = directorStorage;
   }
 
   public Collection<Film> findAll() {
@@ -61,6 +68,19 @@ public class FilmService {
 
       if (existingGenres.size() != genreIds.size()) {
         throw new NotFoundException("Один или несколько жанров не найдены в базе данных");
+      }
+    }
+
+    if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
+      List<Integer> directorIds = film.getDirectors().stream()
+          .map(Director::getId)
+          .distinct()
+          .toList();
+
+      List<Director> existingDirectors = directorStorage.findAllByIds(directorIds);
+
+      if (existingDirectors.size() != directorIds.size()) {
+        throw new NotFoundException("Один или несколько режиссёров не найдены в базе данных");
       }
     }
 
@@ -92,6 +112,22 @@ public class FilmService {
       validateDuration(newFilm);
       oldFilm.setDuration(newFilm.getDuration());
       log.debug("обновлено поле: Duration, новое значение: {}", newFilm.getDuration());
+    }
+
+    if (newFilm.getDirectors() != null) {
+      List<Integer> directorIds = newFilm.getDirectors().stream()
+          .map(Director::getId)
+          .distinct()
+          .toList();
+
+      List<Director> existingDirectors = directorStorage.findAllByIds(directorIds);
+
+      if (existingDirectors.size() != directorIds.size()) {
+        throw new NotFoundException("Один или несколько режиссёров не найдены в базе данных");
+      }
+
+      oldFilm.setDirectors(newFilm.getDirectors());
+      log.debug("обновлено поле: Director, новое значение: {}", newFilm.getDirectors());
     }
 
     filmStorage.update(oldFilm);
@@ -165,5 +201,9 @@ public class FilmService {
   public Film getFilmById(int id) {
     return filmStorage.findById(id)
         .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
+  }
+
+  public Collection<Film> getFilmsByDirector(int directorId, SortBy sortBy) {
+    return filmStorage.getFilmsByDirector(directorId, sortBy);
   }
 }
