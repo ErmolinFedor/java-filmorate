@@ -23,7 +23,7 @@ public interface FilmStorage {
 
   void deleteLike(int filmId, int userId);
 
-  Collection<Film> getPopular(int count);
+  Collection<Film> getPopular(int count, Integer genreId, Integer year);
 
   Collection<Film> getFilmsByDirector(int directorId, SortBy sortBy);
 

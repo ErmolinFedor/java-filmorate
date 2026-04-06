@@ -193,13 +193,13 @@ public class FilmService {
     }
   }
 
-  public Collection<Film> getPopularFilms(int count) throws ValidationException {
+  public Collection<Film> getPopularFilms(int count, Integer genreId, Integer year) throws ValidationException {
     if (count < 0) {
       log.error("Передано некорректное значение count: {}", count);
       throw new ValidationException("Количество фильмов (count) должно быть положительным числом.");
     }
 
-    return filmStorage.getPopular(count);
+    return filmStorage.getPopular(count, genreId, year);
   }
 
   private void checkUserExists(int id) throws NotFoundException {

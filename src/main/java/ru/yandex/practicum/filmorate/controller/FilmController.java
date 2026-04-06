@@ -41,10 +41,14 @@ public class FilmController {
   }
 
   @GetMapping("/popular")
-  public Collection<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count)
-      throws ValidationException {
-    log.info("Получен запрос GET /films/popular?count={count} на получение топ фильмов по лайкам");
-    return filmService.getPopularFilms(count);
+  public Collection<Film> getPopularFilms(
+          @RequestParam(defaultValue = "10") int count,
+          @RequestParam(required = false) Integer genreId,
+          @RequestParam(required = false) Integer year) throws ValidationException {
+
+    log.info("Получен запрос GET /films/popular?count={}&genreId={}&year={} на получение топ фильмов по лайкам",
+            count, genreId, year);
+    return filmService.getPopularFilms(count, genreId, year);
   }
 
   @GetMapping("/director/{directorId}")

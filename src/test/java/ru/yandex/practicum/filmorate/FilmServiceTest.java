@@ -13,10 +13,7 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 import java.time.Duration;
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -113,7 +110,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
 
     filmService.addLike(film.getId(), user.getId());
 
-    Collection<Film> popularFilms = filmService.getPopularFilms(10);
+    Collection<Film> popularFilms = filmService.getPopularFilms(10, null, null);
 
     Optional<Film> savedFilmOpt = popularFilms.stream()
         .filter(f -> f.getId().equals(film.getId()))
@@ -138,7 +135,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     filmService.addLike(film.getId(), user.getId());
     filmService.removeLike(film.getId(), user.getId());
 
-    Collection<Film> films = filmService.getPopularFilms(1);
+    Collection<Film> films = filmService.getPopularFilms(1, null, null);
     boolean isFound = films.stream().anyMatch(f -> f.getId().equals(film.getId()));
     assertTrue(isFound, "Фильм должен присутствовать в списке популярных");
 
@@ -166,7 +163,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
 
     filmService.addLike(film1.getId(), user.getId());
 
-    Collection<Film> popular = filmService.getPopularFilms(10);
+    Collection<Film> popular = filmService.getPopularFilms(10, null, null);
     Object[] popularArr = popular.toArray();
 
     assertEquals(3, popular.size());
@@ -182,9 +179,102 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     filmService.create(createValidFilm());
     filmService.create(createValidFilm());
 
-    Collection<Film> popular = filmService.getPopularFilms(2);
+    Collection<Film> popular = filmService.getPopularFilms(2, null, null);
 
     assertEquals(2, popular.size(), "Должно вернуться только 2 фильма согласно лимиту");
+  }
+
+  @Test
+  void getPopularFilmsFilterByGenre() throws ValidationException {
+    Film film1 = createValidFilm();
+    LinkedHashSet<Genre> genres1 = new LinkedHashSet<>();
+    genres1.add(new Genre(1, "Комедия"));
+    film1.setGenres(genres1);
+    filmService.create(film1);
+
+    Film film2 = createValidFilm();
+    LinkedHashSet<Genre> genres2 = new LinkedHashSet<>();
+    genres2.add(new Genre(2, "Драма"));
+    film2.setGenres(genres2);
+    filmService.create(film2);
+
+    Film film3 = createValidFilm();
+    LinkedHashSet<Genre> genres3 = new LinkedHashSet<>();
+    genres3.add(new Genre(1, "Комедия"));
+    film3.setGenres(genres3);
+    filmService.create(film3);
+
+    User user = User.builder().email("test@test.ru").login("user")
+            .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user);
+
+    filmService.addLike(film1.getId(), user.getId());
+    filmService.addLike(film2.getId(), user.getId());
+    filmService.addLike(film3.getId(), user.getId());
+
+    Collection<Film> comedyFilms = filmService.getPopularFilms(10, 1, null);
+
+    assertEquals(2, comedyFilms.size(), "Должно вернуться 2 фильма жанра Комедия");
+    System.out.println(comedyFilms);
+    assertTrue(comedyFilms.stream().allMatch(f ->
+                    f.getGenres().stream().anyMatch(g -> g.getId() == 1)),
+            "Все фильмы должны быть жанра Комедия");
+  }
+
+  @Test
+  void getPopularFilmsFilterByGenreAndYear() throws ValidationException {
+    Film film = createValidFilm();
+    film.setReleaseDate(LocalDate.of(2024, 5, 10));
+    LinkedHashSet<Genre> genres = new LinkedHashSet<>();
+    genres.add(new Genre(1, "Комедия"));
+    film.setGenres(genres);
+    filmService.create(film);
+
+    Film filmOtherGenre = createValidFilm();
+    filmOtherGenre.setReleaseDate(LocalDate.of(2024, 5, 10));
+    LinkedHashSet<Genre> genresOther = new LinkedHashSet<>();
+    genresOther.add(new Genre(2, "Драма"));
+    filmOtherGenre.setGenres(genresOther);
+    filmService.create(filmOtherGenre);
+
+    Film filmOtherYear = createValidFilm();
+    filmOtherYear.setReleaseDate(LocalDate.of(2023, 5, 10));
+    LinkedHashSet<Genre> genresYear = new LinkedHashSet<>();
+    genresYear.add(new Genre(1, "Комедия"));
+    filmOtherYear.setGenres(genresYear);
+    filmService.create(filmOtherYear);
+
+    User user = User.builder().email("test@test.ru").login("user")
+            .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user);
+
+    filmService.addLike(film.getId(), user.getId());
+    filmService.addLike(filmOtherGenre.getId(), user.getId());
+    filmService.addLike(filmOtherYear.getId(), user.getId());
+
+    Collection<Film> filtered = filmService.getPopularFilms(10, 1, 2024);
+
+    assertEquals(1, filtered.size(), "Должен вернуться только 1 фильм");
+    Film result = filtered.iterator().next();
+    assertEquals(film.getId(), result.getId(), "Должен вернуться фильм с правильными параметрами");
+  }
+
+  @Test
+  void getPopularFilmsWithNonExistentGenre() throws ValidationException {
+    Film film = createValidFilm();
+    LinkedHashSet<Genre> genres = new LinkedHashSet<>();
+    genres.add(new Genre(1, "Комедия"));
+    film.setGenres(genres);
+    filmService.create(film);
+
+    User user = User.builder().email("test@test.ru").login("user")
+            .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user);
+    filmService.addLike(film.getId(), user.getId());
+
+    Collection<Film> result = filmService.getPopularFilms(10, 999, null);
+
+    assertTrue(result.isEmpty(), "Должен вернуться пустой список для несуществующего жанра");
   }
 
   @Test
@@ -224,7 +314,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
   void getaFailurePopularFilmsWithNegativeLimit() throws ValidationException {
     filmService.create(createValidFilm());
 
-    assertThrows(ValidationException.class, () -> filmService.getPopularFilms(-1));
+    assertThrows(ValidationException.class, () -> filmService.getPopularFilms(-1, null, null));
   }
 
   @Test
