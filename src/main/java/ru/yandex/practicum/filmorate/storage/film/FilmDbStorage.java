@@ -33,10 +33,15 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
       "INSERT INTO likes (id_user, id_film) VALUES (?, ?)";
   private static final String DELETE_LIKE_QUERY =
       "DELETE FROM likes WHERE id_user = ? AND id_film = ?";
-  private static final String GET_POPULAR_QUERY =
-      "SELECT f.*, f.duration AS duration_seconds, m.name AS mpa_name FROM films f "
-          + "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id LEFT JOIN likes l ON f.id = l.id_film "
-          + "GROUP BY f.id, m.name ORDER BY COUNT(l.id_user) DESC LIMIT ?";
+  private static final String GET_POPULAR_WITH_FILTERS_QUERY =
+          "SELECT f.*, f.duration AS duration_seconds, m.name AS mpa_name FROM films f "
+                  + "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id "
+                  + "LEFT JOIN likes l ON f.id = l.id_film "
+                  + "LEFT JOIN film_genres fg ON f.id = fg.film_id "
+                  + "WHERE (? IS NULL OR fg.genre_id = ?) "
+                  + "AND (? IS NULL OR EXTRACT(YEAR FROM f.release_date) = ?) "
+                  + "GROUP BY f.id, m.name "
+                  + "ORDER BY COUNT(l.id_user) DESC LIMIT ?";
   private static final String GET_BY_DIRECTORY_SORT_BY_YEAR_QUERY =
       "SELECT \n" +
           "    f.*, f.duration AS duration_seconds, m.name AS mpa_name\n" +
@@ -184,19 +189,22 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
   }
 
   @Override
-  public Collection<Film> getPopular(int count) {
-    List<Film> films = jdbc.query(GET_POPULAR_QUERY, mapper, count);
+  public Collection<Film> getPopular(int count, Integer genreId, Integer year) {
+    List<Film> films = jdbc.query(GET_POPULAR_WITH_FILTERS_QUERY, mapper,
+            genreId, genreId, year, year, count);
 
     if (films.isEmpty()) {
       return films;
     }
 
     List<Integer> filmIds = films.stream()
-        .map(Film::getId)
-        .collect(Collectors.toList());
+            .map(Film::getId)
+            .collect(Collectors.toList());
 
     String inSql = String.join(",", Collections.nCopies(filmIds.size(), "?"));
+
     enrichByLikes(films, filmIds, inSql);
+    enrichByGenres(films, filmIds, inSql);
 
     return films;
   }
