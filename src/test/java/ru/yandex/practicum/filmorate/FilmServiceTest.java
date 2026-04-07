@@ -1,31 +1,30 @@
 package ru.yandex.practicum.filmorate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import jakarta.validation.ConstraintViolation;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Mpa;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.service.DirectorService;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class FilmServiceTest<T extends FilmStorage> extends BaseServiceTest {
 
   protected FilmService filmService;
   protected UserService userService;
+  protected DirectorService directorService;
 
   @BeforeEach
   protected abstract void setUp();
@@ -328,6 +327,160 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     });
 
     assertTrue(exception.getMessage().contains("не найден"));
+  }
+
+  @Test
+  void createFilmWithDirectorSuccessfully() throws ValidationException {
+    Film film = createValidFilm();
+    Director director = Director.builder().name("Groundhog Day").build();
+
+    directorService.create(director);
+    film.getDirectors().add(director);
+
+    Film filmSaved = filmService.create(film);
+
+    assertEquals(1, filmSaved.getDirectors().size());
+  }
+
+  @Test
+  void getFilmsByDirectorByYearsSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    film2.setReleaseDate(LocalDate.of(1994, 7, 12));
+    Director director = Director.builder().name("Groundhog Day").build();
+
+    Director directorSaved = directorService.create(director);
+    film1.getDirectors().add(director);
+    film2.getDirectors().add(director);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.getFilmsByDirector(directorSaved.getId(), SortBy.year);
+
+    assertEquals(2, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved1, filmSaved2), filmsByDirector);
+  }
+
+  @Test
+  void searchFilmByDirectorSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    Director director1 = Director.builder().name("Groundhog Day").build();
+    Director director2 = Director.builder().name("Groundhog").build();
+
+    directorService.create(director1);
+    directorService.create(director2);
+    film1.getDirectors().add(director1);
+    film2.getDirectors().add(director2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("day", List.of(SearchType.director));
+
+    assertEquals(1, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved1), filmsByDirector);
+  }
+
+  @Test
+  void searchFilmsByDirectorSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    Director director1 = Director.builder().name("Groundhog Day").build();
+    Director director2 = Director.builder().name("Groundhog").build();
+
+    directorService.create(director1);
+    directorService.create(director2);
+    film1.getDirectors().add(director1);
+    film2.getDirectors().add(director2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Groundhog", List.of(SearchType.director));
+
+    assertEquals(2, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved1, filmSaved2), filmsByDirector);
+  }
+
+  @Test
+  void searchFilmsByTitleSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    film2.setName("Groundhog");
+    Director director1 = Director.builder().name("Groundhog Day").build();
+    Director director2 = Director.builder().name("Groundhog").build();
+
+    directorService.create(director1);
+    directorService.create(director2);
+    film1.getDirectors().add(director1);
+    film2.getDirectors().add(director2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.title));
+
+    assertEquals(1, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved1), filmsByDirector);
+  }
+
+  @Test
+  void searchFilmsByTitleAndDirectorSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    film2.setName("Groundhog");
+    Director director1 = Director.builder().name("Groundhog").build();
+    Director director2 = Director.builder().name("Groundhog Day").build();
+
+    directorService.create(director1);
+    directorService.create(director2);
+    film1.getDirectors().add(director1);
+    film2.getDirectors().add(director2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.title, SearchType.director));
+
+    assertEquals(2, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved1, film2), filmsByDirector);
+  }
+
+  @Test
+  void getFilmsByDirectorByLikesSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    Director director = Director.builder().name("Groundhog Day").build();
+
+    Director directorSaved = directorService.create(director);
+    film1.getDirectors().add(director);
+    film2.getDirectors().add(director);
+
+    User user = User.builder().email("test@test.ru").login("user")
+        .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user);
+
+    User user2 = User.builder().email("test2@test.ru").login("user2")
+        .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    filmService.addLike(filmSaved2.getId(), user.getId());
+    filmService.addLike(filmSaved2.getId(), user2.getId());
+    filmSaved2.getLikes().add(user.getId());
+    filmSaved2.getLikes().add(user2.getId());
+
+    filmSaved1.getLikes().add(user.getId());
+    filmService.addLike(filmSaved1.getId(), user.getId());
+
+    Collection<Film> filmsByDirector = filmService.getFilmsByDirector(directorSaved.getId(), SortBy.likes);
+
+    assertEquals(2, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved2, filmSaved1), filmsByDirector);
   }
 
   protected Film createValidFilm() {

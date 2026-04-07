@@ -7,6 +7,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.FilmServiceTest;
+import ru.yandex.practicum.filmorate.storage.director.DirectorDbStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 
@@ -17,6 +18,7 @@ class DbFilmServiceTest extends FilmServiceTest<FilmDbStorage> {
 
   private final FilmService springFilmService;
   private final UserDbStorage userDbStorage;
+  private final DirectorDbStorage directorStorage;
   private final JdbcTemplate jdbcTemplate;
 
   @Override
@@ -24,6 +26,9 @@ class DbFilmServiceTest extends FilmServiceTest<FilmDbStorage> {
   public void setUp() {
     jdbcTemplate.update("DELETE FROM likes");
     jdbcTemplate.update("DELETE FROM film_genres");
+    jdbcTemplate.update("DELETE FROM directors");
+    jdbcTemplate.update("ALTER TABLE directors ALTER COLUMN id RESTART WITH 1");
+    jdbcTemplate.update("DELETE FROM film_directors");
     jdbcTemplate.update("DELETE FROM films");
     jdbcTemplate.update("ALTER TABLE films ALTER COLUMN id RESTART WITH 1");
     jdbcTemplate.update("DELETE FROM friends");
@@ -32,5 +37,6 @@ class DbFilmServiceTest extends FilmServiceTest<FilmDbStorage> {
 
     this.filmService = springFilmService;
     this.userService = new UserService(userDbStorage);
+    this.directorService = new DirectorService(directorStorage);
   }
 }

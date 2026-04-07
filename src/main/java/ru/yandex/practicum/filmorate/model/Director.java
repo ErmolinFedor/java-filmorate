@@ -8,9 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
-public class Genre {
-
+public class Director {
   private Integer id;
   private String name;
-
 }
