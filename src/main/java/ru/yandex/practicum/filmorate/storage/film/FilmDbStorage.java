@@ -65,6 +65,19 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
           "LEFT JOIN film_directors fd ON f.id = fd.film_id " +
           "LEFT JOIN directors d ON fd.director_id = d.id " +
           "WHERE ";
+  private static final String GET_COMMON_FILMS_QUERY =
+          "SELECT f.*, f.duration AS duration_seconds, m.name AS mpa_name " +
+                  "FROM films f " +
+                  "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
+                  "LEFT JOIN likes l ON f.id = l.id_film " +
+                  "WHERE f.id IN ( " +
+                  "    SELECT l1.id_film " +
+                  "    FROM likes l1 " +
+                  "    INNER JOIN likes l2 ON l1.id_film = l2.id_film " +
+                  "    WHERE l1.id_user = ? AND l2.id_user = ? " +
+                  ") " +
+                  "GROUP BY f.id, m.name " +
+                  "ORDER BY COUNT(l.id_user) DESC, f.id ASC";
 
 
   public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper) {
@@ -318,6 +331,27 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
         .collect(Collectors.toList());
 
     String inSql = String.join(",", Collections.nCopies(filmIds.size(), "?"));
+    enrichByLikes(films, filmIds, inSql);
+    enrichByGenres(films, filmIds, inSql);
+    enrichByDirectors(films, filmIds, inSql);
+
+    return films;
+  }
+
+  @Override
+  public Collection<Film> getCommonFilms(int userId, int friendId) {
+    List<Film> films = jdbc.query(GET_COMMON_FILMS_QUERY, mapper, userId, friendId);
+
+    if (films.isEmpty()) {
+      return films;
+    }
+
+    List<Integer> filmIds = films.stream()
+            .map(Film::getId)
+            .collect(Collectors.toList());
+
+    String inSql = String.join(",", Collections.nCopies(filmIds.size(), "?"));
+
     enrichByLikes(films, filmIds, inSql);
     enrichByGenres(films, filmIds, inSql);
     enrichByDirectors(films, filmIds, inSql);
