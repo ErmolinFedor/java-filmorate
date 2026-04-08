@@ -202,6 +202,14 @@ public class FilmService {
     return filmStorage.getPopular(count, genreId, year);
   }
 
+  public Collection<Film> getCommonFilms(int userId, int friendId) {
+    checkUserExists(userId);
+    checkUserExists(friendId);
+
+    return filmStorage.getCommonFilms(userId, friendId);
+  }
+
+
   private void checkUserExists(int id) throws NotFoundException {
     userStorage.findById(id).orElseThrow(() -> {
       log.warn("Не найден пользователь: id = {}", id);

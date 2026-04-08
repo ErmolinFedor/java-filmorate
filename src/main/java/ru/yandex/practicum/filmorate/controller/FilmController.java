@@ -59,6 +59,13 @@ public class FilmController {
     return filmService.getFilmsByDirector(directorId, sortBy);
   }
 
+  @GetMapping("/common")
+  public Collection<Film> getCommonFilms(@RequestParam int userId, @RequestParam int friendId) {
+    log.info("Получен запрос GET /films/common?userId={}&friendId={} на получение общих фильмов",
+            userId, friendId);
+    return filmService.getCommonFilms(userId, friendId);
+  }
+
   @GetMapping("/search")
   public Collection<Film> search(@RequestParam String query, @RequestParam List<SearchType> by) {
     log.info("Получен запрос GET /films/search?searchTypes=[director,title] на поиск по названию фильмов и по режиссёру");
