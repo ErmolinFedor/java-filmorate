@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.FilmServiceTest;
 import ru.yandex.practicum.filmorate.storage.director.DirectorDbStorage;
+import ru.yandex.practicum.filmorate.storage.feed.FeedDbStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 
@@ -20,6 +21,7 @@ class DbFilmServiceTest extends FilmServiceTest<FilmDbStorage> {
   private final UserDbStorage userDbStorage;
   private final DirectorDbStorage directorStorage;
   private final JdbcTemplate jdbcTemplate;
+  private final FeedDbStorage feedDbStorage;
 
   @Override
   @BeforeEach
@@ -36,7 +38,7 @@ class DbFilmServiceTest extends FilmServiceTest<FilmDbStorage> {
     jdbcTemplate.update("ALTER TABLE users ALTER COLUMN id RESTART WITH 1");
 
     this.filmService = springFilmService;
-    this.userService = new UserService(userDbStorage);
+    this.userService = new UserService(userDbStorage, feedDbStorage);
     this.directorService = new DirectorService(directorStorage);
   }
 }

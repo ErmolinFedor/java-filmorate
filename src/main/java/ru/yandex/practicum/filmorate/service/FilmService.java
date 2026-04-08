@@ -1,5 +1,9 @@
 package ru.yandex.practicum.filmorate.service;
 
+import static ru.yandex.practicum.filmorate.model.EventType.LIKE;
+import static ru.yandex.practicum.filmorate.model.Operation.ADD;
+import static ru.yandex.practicum.filmorate.model.Operation.REMOVE;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -9,6 +13,7 @@ import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.*;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
+import ru.yandex.practicum.filmorate.storage.feed.FeedStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genres.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
@@ -28,18 +33,21 @@ public class FilmService {
   private final MpaStorage mpaStorage;
   private final GenreStorage genreStorage;
   private final DirectorStorage directorStorage;
+  private final FeedStorage feedStorage;
 
   @Autowired
   public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
                      @Qualifier("userDbStorage") UserStorage userStorage,
                      @Qualifier("mpaDbStorage") MpaStorage mpaStorage,
                      @Qualifier("genreDbStorage") GenreStorage genreStorage,
-                     @Qualifier("directorDbStorage") DirectorStorage directorStorage) {
+                     @Qualifier("directorDbStorage") DirectorStorage directorStorage,
+                     @Qualifier("feedDbStorage") FeedStorage feedStorage) {
     this.filmStorage = filmStorage;
     this.userStorage = userStorage;
     this.mpaStorage = mpaStorage;
     this.genreStorage = genreStorage;
     this.directorStorage = directorStorage;
+    this.feedStorage = feedStorage;
   }
 
   public Collection<Film> findAll() {
@@ -152,6 +160,7 @@ public class FilmService {
 
     filmStorage.addLike(id, userId);
     log.info("Пользователь {} поставил лайк фильму {}", userId, id);
+    feedStorage.addEvent(userId, id, LIKE, ADD);
   }
 
   public void removeLike(int filmId, int userId) throws NotFoundException {
@@ -160,6 +169,7 @@ public class FilmService {
 
     filmStorage.deleteLike(filmId, userId);
     log.info("Пользователь {} удалил лайк с фильма {}", userId, filmId);
+    feedStorage.addEvent(userId, filmId, LIKE, REMOVE);
   }
 
   private Film getFilmOrThrow(int id) throws NotFoundException {
