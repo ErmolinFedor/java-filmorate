@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
@@ -83,5 +84,10 @@ public class UserController {
     log.info("Получен запрос DELETE /users/{id}/friends/{friendId} с id: {} и friendId: {}", id,
         friendId);
     userService.deleteFriend(id, friendId);
+  }
+
+  @GetMapping("/{id}/feed")
+  public Collection<Event> getFeed(@PathVariable Integer id) {
+    return userService.getFeed(id);
   }
 }

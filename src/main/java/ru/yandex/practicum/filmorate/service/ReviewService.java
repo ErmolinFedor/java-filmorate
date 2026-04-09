@@ -1,11 +1,17 @@
 package ru.yandex.practicum.filmorate.service;
 
+import static ru.yandex.practicum.filmorate.model.EventType.REVIEW;
+import static ru.yandex.practicum.filmorate.model.Operation.ADD;
+import static ru.yandex.practicum.filmorate.model.Operation.REMOVE;
+import static ru.yandex.practicum.filmorate.model.Operation.UPDATE;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
+import ru.yandex.practicum.filmorate.storage.feed.FeedStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.rewiew.ReviewStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -18,6 +24,7 @@ public class ReviewService {
   private final ReviewStorage reviewStorage;
   private final UserStorage userStorage;
   private final FilmStorage filmStorage;
+  private final FeedStorage feedStorage;
 
   public Review add(Review review) {
     checkUserExists(review.getUserId());
@@ -25,20 +32,26 @@ public class ReviewService {
 
     Review addedReview = reviewStorage.add(review);
     log.info("Добавлен новый отзыв: {}", addedReview);
+    feedStorage.addEvent(addedReview.getUserId(), addedReview.getReviewId(), REVIEW, ADD);
+
     return addedReview;
   }
 
   public Review update(Review review) {
-    getById(review.getReviewId());
+    Review existingReview = getById(review.getReviewId());
     Review updatedReview = reviewStorage.update(review);
     log.info("Отзыв обновлен: {}", updatedReview);
+
+    feedStorage.addEvent(existingReview.getUserId(), updatedReview.getReviewId(), REVIEW, UPDATE);
+
     return updatedReview;
   }
 
   public void delete(int id) {
-    getById(id);
+    Review review = getById(id);
     reviewStorage.delete(id);
     log.info("Отзыв с id {} удален", id);
+    feedStorage.addEvent(review.getUserId(), id, REVIEW, REMOVE);
   }
 
   public Review getById(int id) {

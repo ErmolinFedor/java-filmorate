@@ -1,10 +1,13 @@
 package ru.yandex.practicum.filmorate;
 
 import jakarta.validation.ConstraintViolation;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -317,4 +320,43 @@ public abstract class UserServiceTest<T extends UserStorage> extends BaseService
     return User.builder().email("test@test.ru").login("user").name("Common Name")
         .birthday(LocalDate.of(1985, 9, 20)).build();
   }
+
+  @Test
+  void getFeedEmptyInitially() throws ValidationException {
+    User user = userService.create(createValidUser());
+
+    Collection<Event> feed = userService.getFeed(user.getId());
+
+    assertTrue(feed.isEmpty(), "Лента нового пользователя должна быть пустой");
+  }
+
+  @Test
+  void getFeedAfterAddingAndDeletingFriend() throws ValidationException, NotFoundException {
+    User user = userService.create(createValidUser());
+    User friend = createValidUser();
+    friend.setLogin("friend");
+    friend = userService.create(friend);
+
+    userService.addFriend(user.getId(), friend.getId());
+    userService.deleteFriend(user.getId(), friend.getId());
+
+    List<Event> feed = new ArrayList<>(userService.getFeed(user.getId()));
+
+    assertEquals(2, feed.size(), "В ленте должно быть 2 события");
+
+    assertEquals("FRIEND", feed.getFirst().getEventType().name());
+    assertEquals("ADD", feed.get(0).getOperation().toString());
+    assertEquals(friend.getId(), feed.get(0).getEntityId());
+
+    assertEquals("FRIEND", feed.get(1).getEventType().name());
+    assertEquals("REMOVE", feed.get(1).getOperation().toString());
+    assertEquals(friend.getId(), feed.get(1).getEntityId());
+  }
+
+  @Test
+  void getFeedThrowsNotFoundForInvalidUser() {
+    assertThrows(NotFoundException.class, () -> userService.getFeed(999),
+        "Должно выбрасываться исключение для несуществующего пользователя");
+  }
+
 }
