@@ -232,6 +232,12 @@ public class FilmService {
         .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
   }
 
+  public void delete(int filmId) throws NotFoundException {
+    getFilmById(filmId);
+    filmStorage.delete(filmId);
+    log.info("Фильм id={} успешно удален", filmId);
+  }
+
   public Collection<Film> getFilmsByDirector(int directorId, SortBy sortBy) {
     return filmStorage.getFilmsByDirector(directorId, sortBy);
   }

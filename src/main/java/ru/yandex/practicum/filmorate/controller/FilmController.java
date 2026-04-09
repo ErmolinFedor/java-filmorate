@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @Slf4j
 @RestController
@@ -38,6 +39,13 @@ public class FilmController {
   public Film findById(@PathVariable int id) {
     log.info("Получен запрос GET /films/{}", id);
     return filmService.getFilmById(id);
+  }
+
+  @DeleteMapping("/{filmId}")
+  @ResponseStatus(NO_CONTENT)
+  public void deleteFilm(@PathVariable int filmId) throws NotFoundException {
+    log.info("Получен запрос DELETE /films/{} на удаление фильма", filmId);
+    filmService.delete(filmId);
   }
 
   @GetMapping("/popular")
