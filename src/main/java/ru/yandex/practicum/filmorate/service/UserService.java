@@ -32,6 +32,12 @@ public class UserService {
     return getUserOrThrow(id);
   }
 
+  public void delete(int userId) throws NotFoundException {
+    getUserOrThrow(userId);
+    userStorage.delete(userId);
+    log.info("Пользователь id={} успешно удален", userId);
+  }
+
   public User create(@RequestBody User user) throws ValidationException {
     validateLogin(user);
 

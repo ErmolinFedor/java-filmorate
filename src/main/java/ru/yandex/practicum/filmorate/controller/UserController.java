@@ -38,6 +38,13 @@ public class UserController {
     return userService.findById(userId);
   }
 
+  @DeleteMapping("/{userId}")
+  @ResponseStatus(NO_CONTENT)
+  public void deleteUser(@PathVariable int userId) throws NotFoundException {
+    log.info("Получен запрос DELETE /users/{} на удаление пользователя", userId);
+    userService.delete(userId);
+  }
+
   @GetMapping("/{userId}/friends")
   public Collection<User> findAllFriendsById(@PathVariable int userId) throws NotFoundException {
     log.info("Получен запрос GET /users/{id}/friends на получение списка друзей пользователя id={}",

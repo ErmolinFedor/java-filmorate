@@ -24,6 +24,8 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
       "SELECT f.*, f.duration AS duration_seconds, "
           + "m.name AS mpa_name "
           + "FROM films f LEFT JOIN mpa_ratings m ON f.mpa_id = m.id WHERE f.id = ?";
+  private static final String DELETE_QUERY =
+          "DELETE FROM films WHERE id = ?";
   private static final String INSERT_QUERY =
       "INSERT INTO films(name, description, release_date, duration, mpa_id) VALUES (?, ?, ?, ?, ?)";
   private static final String UPDATE_QUERY =
@@ -171,6 +173,11 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
       loadLikes(film);
     });
     return filmOpt;
+  }
+
+  @Override
+  public void delete(int id) {
+    jdbc.update(DELETE_QUERY, id);
   }
 
   @Override

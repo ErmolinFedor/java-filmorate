@@ -24,6 +24,8 @@ public class UserDbStorage extends BaseRepository<User> implements UserStorage {
       "INSERT INTO friends (id_user, id_friend) VALUES (?, ?)";
   private static final String DELETE_FRIEND_QUERY =
       "DELETE FROM friends WHERE id_user = ? AND id_friend = ?";
+  private static final String DELETE_QUERY =
+          "DELETE FROM users WHERE id = ?";
   private static final String FIND_FRIENDS_QUERY =
       "SELECT u.* FROM users u JOIN friends f ON u.id = f.id_friend " +
           "WHERE f.id_user = ?";
@@ -71,6 +73,11 @@ public class UserDbStorage extends BaseRepository<User> implements UserStorage {
   @Override
   public Optional<User> findById(int id) {
     return findOne(FIND_BY_ID_QUERY, id);
+  }
+
+  @Override
+  public void delete(int id) {
+    jdbc.update(DELETE_QUERY, id);
   }
 
   @Override
