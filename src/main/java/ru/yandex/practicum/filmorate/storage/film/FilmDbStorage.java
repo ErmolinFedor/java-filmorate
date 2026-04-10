@@ -246,6 +246,7 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
 
     enrichByLikes(films, filmIds, inSql);
     enrichByGenres(films, filmIds, inSql);
+    enrichByDirectors(films, filmIds, inSql);
 
     return films;
   }

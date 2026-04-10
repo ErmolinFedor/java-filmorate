@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Builder
@@ -10,5 +11,7 @@ import lombok.*;
 @EqualsAndHashCode
 public class Director {
   private Integer id;
+  @NonNull
+  @NotBlank
   private String name;
 }
