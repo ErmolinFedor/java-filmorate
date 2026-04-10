@@ -86,6 +86,27 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
                   "GROUP BY f.id, m.name " +
                   "ORDER BY COUNT(l.id_user) DESC, f.id ASC";
 
+  private static final String GET_RECOMMENDATIONS_QUERY =
+          "WITH common_likes AS (" +
+                  "    SELECT l2.id_user AS other_user, COUNT(*) AS common_count " +
+                  "    FROM likes l1 " +
+                  "    JOIN likes l2 ON l1.id_film = l2.id_film " +
+                  "    WHERE l1.id_user = ? AND l2.id_user != ? " +
+                  "    GROUP BY l2.id_user " +
+                  "    ORDER BY common_count DESC " +
+                  "    LIMIT 1" +
+                  ") " +
+                  "SELECT f.*, f.duration AS duration_seconds, m.name AS mpa_name " +
+                  "FROM films f " +
+                  "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
+                  "WHERE f.id IN (" +
+                  "    SELECT l.id_film FROM likes l " +
+                  "    WHERE l.id_user = (SELECT other_user FROM common_likes)" +
+                  ") " +
+                  "AND f.id NOT IN (" +
+                  "    SELECT l.id_film FROM likes l WHERE l.id_user = ?" +
+                  ")";
+
 
   public FilmDbStorage(JdbcTemplate jdbc, RowMapper<Film> mapper) {
     super(jdbc, mapper, Film.class);
@@ -371,6 +392,31 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
     enrichByGenres(films, filmIds, inSql);
     enrichByDirectors(films, filmIds, inSql);
 
+    return films;
+  }
+
+  @Override
+  public Collection<Film> getRecommendations(int userId) {
+    log.info("Поиск рекомендаций для пользователя {}", userId);
+
+    List<Film> films = jdbc.query(GET_RECOMMENDATIONS_QUERY, mapper, userId, userId, userId);
+
+    if (films.isEmpty()) {
+      log.info("Для пользователя {} не найдено рекомендаций", userId);
+      return films;
+    }
+
+    List<Integer> filmIds = films.stream()
+            .map(Film::getId)
+            .collect(Collectors.toList());
+
+    String inSql = String.join(",", Collections.nCopies(filmIds.size(), "?"));
+
+    enrichByLikes(films, filmIds, inSql);
+    enrichByGenres(films, filmIds, inSql);
+    enrichByDirectors(films, filmIds, inSql);
+
+    log.info("Для пользователя {} найдено {} рекомендаций", userId, films.size());
     return films;
   }
 

@@ -219,6 +219,12 @@ public class FilmService {
     return filmStorage.getCommonFilms(userId, friendId);
   }
 
+  public Collection<Film> getRecommendations(int userId) {
+    log.info("Запрошены рекомендации для пользователя {}", userId);
+    checkUserExists(userId);
+    return filmStorage.getRecommendations(userId);
+  }
+
 
   private void checkUserExists(int id) throws NotFoundException {
     userStorage.findById(id).orElseThrow(() -> {
