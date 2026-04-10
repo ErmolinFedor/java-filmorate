@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.Event;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 import java.util.Collection;
@@ -22,9 +24,13 @@ public class UserController {
 
   private final UserService userService;
 
+  private final FilmService filmService;
+
   @Autowired
-  public UserController(UserService userService) {
+  public UserController(UserService userService,
+                        FilmService filmService) {
     this.userService = userService;
+    this.filmService = filmService;
   }
 
   @GetMapping
@@ -97,4 +103,11 @@ public class UserController {
   public Collection<Event> getFeed(@PathVariable Integer id) {
     return userService.getFeed(id);
   }
+
+  @GetMapping("/{userId}/recommendations")
+  public Collection<Film> getRecommendations(@PathVariable int userId) {
+    log.info("Получен запрос GET /users/{}/recommendations", userId);
+    return filmService.getRecommendations(userId);
+  }
+
 }
