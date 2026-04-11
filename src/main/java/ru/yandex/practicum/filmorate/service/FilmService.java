@@ -21,6 +21,7 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -101,6 +102,14 @@ public class FilmService {
       log.debug("обновлено поле: Name, новое значение: {}", newFilm.getName());
     }
 
+    if (newFilm.getMpa() != null) {
+      int mpaId = newFilm.getMpa().getId();
+      Mpa mpa = mpaStorage.findById(mpaId)
+              .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id=" + mpaId + " не найден"));
+      oldFilm.setMpa(mpa);
+      log.debug("обновлено поле: MPA, новое значение: {}", mpa.getId());
+    }
+
     if (newFilm.getDescription() != null) {
       validateDescription(newFilm);
       oldFilm.setDescription(newFilm.getDescription());
@@ -119,7 +128,7 @@ public class FilmService {
       log.debug("обновлено поле: Duration, новое значение: {}", newFilm.getDuration());
     }
 
-    if (newFilm.getGenres() != null && !newFilm.getGenres().isEmpty()) {
+    if (newFilm.getGenres() != null) {
       List<Integer> genreIds = newFilm.getGenres().stream()
           .map(Genre::getId)
           .distinct()
@@ -133,25 +142,25 @@ public class FilmService {
       oldFilm.setGenres(newFilm.getGenres());
     }
 
-    if (newFilm.getDirectors() != null) {
-      List<Integer> directorIds = newFilm.getDirectors().stream()
-          .map(Director::getId)
-          .distinct()
-          .toList();
-
-      List<Director> existingDirectors = directorStorage.findAllByIds(directorIds);
-
-      if (existingDirectors.size() != directorIds.size()) {
-        throw new NotFoundException("Один или несколько режиссёров не найдены в базе данных");
+      if (newFilm.getDirectors() == null) {
+          oldFilm.setDirectors(new LinkedHashSet<>());
+      } else if (newFilm.getDirectors().isEmpty()) {
+          oldFilm.setDirectors(new LinkedHashSet<>());
+      } else {
+          List<Integer> directorIds = newFilm.getDirectors().stream()
+                  .map(Director::getId)
+                  .distinct()
+                  .toList();
+          List<Director> existingDirectors = directorStorage.findAllByIds(directorIds);
+          if (existingDirectors.size() != directorIds.size()) {
+              throw new NotFoundException("Один или несколько режиссёров не найдены в базе данных");
+          }
+          oldFilm.setDirectors(newFilm.getDirectors());
       }
 
-      oldFilm.setDirectors(newFilm.getDirectors());
-      log.debug("обновлено поле: Director, новое значение: {}", newFilm.getDirectors());
-    }
-
-    filmStorage.update(oldFilm);
-    log.info("Обновлен фильм: {}", oldFilm.getName());
-    return oldFilm;
+      filmStorage.update(oldFilm);
+      log.info("Обновлен фильм: {}", oldFilm.getName());
+      return oldFilm;
   }
 
   public void addLike(int id, int userId) throws NotFoundException {
@@ -245,6 +254,10 @@ public class FilmService {
   }
 
   public Collection<Film> getFilmsByDirector(int directorId, SortBy sortBy) {
+    directorStorage.findById(directorId).orElseThrow(() -> {
+      log.warn("Не найден режиссер: id = {}", directorId);
+      return new NotFoundException("Режиссер с Id " + directorId + " не найден");
+    });
     return filmStorage.getFilmsByDirector(directorId, sortBy);
   }
 

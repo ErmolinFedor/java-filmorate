@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.service.DirectorService;
 import java.util.Collection;
 
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.OK;
 
 @Slf4j
 @RestController
@@ -43,7 +44,7 @@ public class DirectorController {
   }
 
   @PutMapping
-  @ResponseStatus(CREATED)
+  @ResponseStatus(OK)
   public Director update(@Valid @RequestBody Director director) throws ValidationException {
     log.info("Получен запрос POST /directors на обновление режиссёра: {}", director.getName());
     return directorService.update(director);

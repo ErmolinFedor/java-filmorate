@@ -246,6 +246,7 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
 
     enrichByLikes(films, filmIds, inSql);
     enrichByGenres(films, filmIds, inSql);
+    enrichByDirectors(films, filmIds, inSql);
 
     return films;
   }
@@ -274,7 +275,7 @@ public class FilmDbStorage extends BaseRepository<Film> implements FilmStorage {
       params.add(searchPattern);
     }
     sql.append(String.join(" OR ", conditions));
-    sql.append(" GROUP BY f.id");
+    sql.append(" GROUP BY f.id ORDER BY f.id DESC");
 
     List<Film> films = jdbc.query(sql.toString(), mapper, params.toArray());
 
