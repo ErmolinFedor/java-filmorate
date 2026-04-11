@@ -491,7 +491,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Groundhog", List.of(SearchType.director));
 
     assertEquals(2, filmsByDirector.size());
-    assertIterableEquals(List.of(filmSaved1, filmSaved2), filmsByDirector);
+    assertIterableEquals(List.of(filmSaved2, filmSaved1), filmsByDirector);
   }
 
   @Test
@@ -535,7 +535,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.title, SearchType.director));
 
     assertEquals(2, filmsByDirector.size());
-    assertIterableEquals(List.of(filmSaved1, film2), filmsByDirector);
+    assertIterableEquals(List.of(filmSaved2, filmSaved1), filmsByDirector);
   }
 
   @Test
