@@ -11,7 +11,6 @@ import lombok.*;
 @EqualsAndHashCode
 public class Director {
   private Integer id;
-  @NonNull
   @NotBlank
   private String name;
 }

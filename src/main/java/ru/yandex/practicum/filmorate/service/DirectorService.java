@@ -34,7 +34,7 @@ public class DirectorService {
 
     Director oldDirector = getDirectorOrThrow(newDirector.getId());
     // Обновление полей, если они не null
-    if (newDirector.getName() != null && !newDirector.getName().isBlank()) {
+    if (newDirector.getName() != null) {
       oldDirector.setName(newDirector.getName());
       log.debug("обновлено поле: Name, новое значение: {}", newDirector.getName());
     }

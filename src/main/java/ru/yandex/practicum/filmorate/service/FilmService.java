@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
+import ru.yandex.practicum.filmorate.annotation.DateFirstMovieValidator;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.*;
@@ -216,6 +217,10 @@ public class FilmService {
     if (count < 0) {
       log.error("Передано некорректное значение count: {}", count);
       throw new ValidationException("Количество фильмов (count) должно быть положительным числом.");
+    }
+    if (year != null && year < 1895) {
+      log.error("Передано некорректное значение year: {}", count);
+      throw new ValidationException("Год выпуска фильма (year) должно быть больше 1895.");
     }
 
     return filmStorage.getPopular(count, genreId, year);

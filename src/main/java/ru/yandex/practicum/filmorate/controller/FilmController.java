@@ -1,6 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -75,7 +77,7 @@ public class FilmController {
   }
 
   @GetMapping("/search")
-  public Collection<Film> search(@RequestParam String query, @RequestParam List<SearchType> by) {
+  public Collection<Film> search(@RequestParam @NotBlank String query, @RequestParam @NotEmpty List<SearchType> by) {
     log.info("Получен запрос GET /films/search?searchTypes=[director,title] на поиск по названию фильмов и по режиссёру");
     return filmService.searchByDirectorAndName(query, by);
   }
