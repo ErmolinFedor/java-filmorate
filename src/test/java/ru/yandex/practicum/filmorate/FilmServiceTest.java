@@ -1,31 +1,27 @@
 package ru.yandex.practicum.filmorate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import jakarta.validation.ConstraintViolation;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Mpa;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.service.DirectorService;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class FilmServiceTest<T extends FilmStorage> extends BaseServiceTest {
 
   protected FilmService filmService;
   protected UserService userService;
+  protected DirectorService directorService;
 
   @BeforeEach
   protected abstract void setUp();
@@ -114,7 +110,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
 
     filmService.addLike(film.getId(), user.getId());
 
-    Collection<Film> popularFilms = filmService.getPopularFilms(10);
+    Collection<Film> popularFilms = filmService.getPopularFilms(10, null, null);
 
     Optional<Film> savedFilmOpt = popularFilms.stream()
         .filter(f -> f.getId().equals(film.getId()))
@@ -139,7 +135,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     filmService.addLike(film.getId(), user.getId());
     filmService.removeLike(film.getId(), user.getId());
 
-    Collection<Film> films = filmService.getPopularFilms(1);
+    Collection<Film> films = filmService.getPopularFilms(1, null, null);
     boolean isFound = films.stream().anyMatch(f -> f.getId().equals(film.getId()));
     assertTrue(isFound, "Фильм должен присутствовать в списке популярных");
 
@@ -167,7 +163,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
 
     filmService.addLike(film1.getId(), user.getId());
 
-    Collection<Film> popular = filmService.getPopularFilms(10);
+    Collection<Film> popular = filmService.getPopularFilms(10, null, null);
     Object[] popularArr = popular.toArray();
 
     assertEquals(3, popular.size());
@@ -183,9 +179,102 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     filmService.create(createValidFilm());
     filmService.create(createValidFilm());
 
-    Collection<Film> popular = filmService.getPopularFilms(2);
+    Collection<Film> popular = filmService.getPopularFilms(2, null, null);
 
     assertEquals(2, popular.size(), "Должно вернуться только 2 фильма согласно лимиту");
+  }
+
+  @Test
+  void getPopularFilmsFilterByGenre() throws ValidationException {
+    Film film1 = createValidFilm();
+    LinkedHashSet<Genre> genres1 = new LinkedHashSet<>();
+    genres1.add(new Genre(1, "Комедия"));
+    film1.setGenres(genres1);
+    filmService.create(film1);
+
+    Film film2 = createValidFilm();
+    LinkedHashSet<Genre> genres2 = new LinkedHashSet<>();
+    genres2.add(new Genre(2, "Драма"));
+    film2.setGenres(genres2);
+    filmService.create(film2);
+
+    Film film3 = createValidFilm();
+    LinkedHashSet<Genre> genres3 = new LinkedHashSet<>();
+    genres3.add(new Genre(1, "Комедия"));
+    film3.setGenres(genres3);
+    filmService.create(film3);
+
+    User user = User.builder().email("test@test.ru").login("user")
+            .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user);
+
+    filmService.addLike(film1.getId(), user.getId());
+    filmService.addLike(film2.getId(), user.getId());
+    filmService.addLike(film3.getId(), user.getId());
+
+    Collection<Film> comedyFilms = filmService.getPopularFilms(10, 1, null);
+
+    assertEquals(2, comedyFilms.size(), "Должно вернуться 2 фильма жанра Комедия");
+    System.out.println(comedyFilms);
+    assertTrue(comedyFilms.stream().allMatch(f ->
+                    f.getGenres().stream().anyMatch(g -> g.getId() == 1)),
+            "Все фильмы должны быть жанра Комедия");
+  }
+
+  @Test
+  void getPopularFilmsFilterByGenreAndYear() throws ValidationException {
+    Film film = createValidFilm();
+    film.setReleaseDate(LocalDate.of(2024, 5, 10));
+    LinkedHashSet<Genre> genres = new LinkedHashSet<>();
+    genres.add(new Genre(1, "Комедия"));
+    film.setGenres(genres);
+    filmService.create(film);
+
+    Film filmOtherGenre = createValidFilm();
+    filmOtherGenre.setReleaseDate(LocalDate.of(2024, 5, 10));
+    LinkedHashSet<Genre> genresOther = new LinkedHashSet<>();
+    genresOther.add(new Genre(2, "Драма"));
+    filmOtherGenre.setGenres(genresOther);
+    filmService.create(filmOtherGenre);
+
+    Film filmOtherYear = createValidFilm();
+    filmOtherYear.setReleaseDate(LocalDate.of(2023, 5, 10));
+    LinkedHashSet<Genre> genresYear = new LinkedHashSet<>();
+    genresYear.add(new Genre(1, "Комедия"));
+    filmOtherYear.setGenres(genresYear);
+    filmService.create(filmOtherYear);
+
+    User user = User.builder().email("test@test.ru").login("user")
+            .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user);
+
+    filmService.addLike(film.getId(), user.getId());
+    filmService.addLike(filmOtherGenre.getId(), user.getId());
+    filmService.addLike(filmOtherYear.getId(), user.getId());
+
+    Collection<Film> filtered = filmService.getPopularFilms(10, 1, 2024);
+
+    assertEquals(1, filtered.size(), "Должен вернуться только 1 фильм");
+    Film result = filtered.iterator().next();
+    assertEquals(film.getId(), result.getId(), "Должен вернуться фильм с правильными параметрами");
+  }
+
+  @Test
+  void getPopularFilmsWithNonExistentGenre() throws ValidationException {
+    Film film = createValidFilm();
+    LinkedHashSet<Genre> genres = new LinkedHashSet<>();
+    genres.add(new Genre(1, "Комедия"));
+    film.setGenres(genres);
+    filmService.create(film);
+
+    User user = User.builder().email("test@test.ru").login("user")
+            .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user);
+    filmService.addLike(film.getId(), user.getId());
+
+    Collection<Film> result = filmService.getPopularFilms(10, 999, null);
+
+    assertTrue(result.isEmpty(), "Должен вернуться пустой список для несуществующего жанра");
   }
 
   @Test
@@ -225,7 +314,7 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
   void getaFailurePopularFilmsWithNegativeLimit() throws ValidationException {
     filmService.create(createValidFilm());
 
-    assertThrows(ValidationException.class, () -> filmService.getPopularFilms(-1));
+    assertThrows(ValidationException.class, () -> filmService.getPopularFilms(-1, null, null));
   }
 
   @Test
@@ -328,6 +417,160 @@ public abstract class FilmServiceTest<T extends FilmStorage> extends BaseService
     });
 
     assertTrue(exception.getMessage().contains("не найден"));
+  }
+
+  @Test
+  void createFilmWithDirectorSuccessfully() throws ValidationException {
+    Film film = createValidFilm();
+    Director director = Director.builder().name("Groundhog Day").build();
+
+    directorService.create(director);
+    film.getDirectors().add(director);
+
+    Film filmSaved = filmService.create(film);
+
+    assertEquals(1, filmSaved.getDirectors().size());
+  }
+
+  @Test
+  void getFilmsByDirectorByYearsSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    film2.setReleaseDate(LocalDate.of(1994, 7, 12));
+    Director director = Director.builder().name("Groundhog Day").build();
+
+    Director directorSaved = directorService.create(director);
+    film1.getDirectors().add(director);
+    film2.getDirectors().add(director);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.getFilmsByDirector(directorSaved.getId(), SortBy.year);
+
+    assertEquals(2, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved1, filmSaved2), filmsByDirector);
+  }
+
+  @Test
+  void searchFilmByDirectorSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    Director director1 = Director.builder().name("Groundhog Day").build();
+    Director director2 = Director.builder().name("Groundhog").build();
+
+    directorService.create(director1);
+    directorService.create(director2);
+    film1.getDirectors().add(director1);
+    film2.getDirectors().add(director2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("day", List.of(SearchType.director));
+
+    assertEquals(1, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved1), filmsByDirector);
+  }
+
+  @Test
+  void searchFilmsByDirectorSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    Director director1 = Director.builder().name("Groundhog Day").build();
+    Director director2 = Director.builder().name("Groundhog").build();
+
+    directorService.create(director1);
+    directorService.create(director2);
+    film1.getDirectors().add(director1);
+    film2.getDirectors().add(director2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Groundhog", List.of(SearchType.director));
+
+    assertEquals(2, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved2, filmSaved1), filmsByDirector);
+  }
+
+  @Test
+  void searchFilmsByTitleSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    film2.setName("Groundhog");
+    Director director1 = Director.builder().name("Groundhog Day").build();
+    Director director2 = Director.builder().name("Groundhog").build();
+
+    directorService.create(director1);
+    directorService.create(director2);
+    film1.getDirectors().add(director1);
+    film2.getDirectors().add(director2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.title));
+
+    assertEquals(1, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved1), filmsByDirector);
+  }
+
+  @Test
+  void searchFilmsByTitleAndDirectorSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    film2.setName("Groundhog");
+    Director director1 = Director.builder().name("Groundhog").build();
+    Director director2 = Director.builder().name("Groundhog Day").build();
+
+    directorService.create(director1);
+    directorService.create(director2);
+    film1.getDirectors().add(director1);
+    film2.getDirectors().add(director2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    Collection<Film> filmsByDirector = filmService.searchByDirectorAndName("Day", List.of(SearchType.title, SearchType.director));
+
+    assertEquals(2, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved2, filmSaved1), filmsByDirector);
+  }
+
+  @Test
+  void getFilmsByDirectorByLikesSuccessfully() throws ValidationException {
+    Film film1 = createValidFilm();
+    Film film2 = createValidFilm();
+    Director director = Director.builder().name("Groundhog Day").build();
+
+    Director directorSaved = directorService.create(director);
+    film1.getDirectors().add(director);
+    film2.getDirectors().add(director);
+
+    User user = User.builder().email("test@test.ru").login("user")
+        .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user);
+
+    User user2 = User.builder().email("test2@test.ru").login("user2")
+        .birthday(LocalDate.now().minusYears(20)).build();
+    userService.create(user2);
+
+    Film filmSaved1 = filmService.create(film1);
+    Film filmSaved2 = filmService.create(film2);
+
+    filmService.addLike(filmSaved2.getId(), user.getId());
+    filmService.addLike(filmSaved2.getId(), user2.getId());
+    filmSaved2.getLikes().add(user.getId());
+    filmSaved2.getLikes().add(user2.getId());
+
+    filmSaved1.getLikes().add(user.getId());
+    filmService.addLike(filmSaved1.getId(), user.getId());
+
+    Collection<Film> filmsByDirector = filmService.getFilmsByDirector(directorSaved.getId(), SortBy.likes);
+
+    assertEquals(2, filmsByDirector.size());
+    assertIterableEquals(List.of(filmSaved2, filmSaved1), filmsByDirector);
   }
 
   protected Film createValidFilm() {

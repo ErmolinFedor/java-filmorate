@@ -1,25 +1,21 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.NO_CONTENT;
-
 import jakarta.validation.Valid;
-import java.util.Collection;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
+import ru.yandex.practicum.filmorate.model.Event;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
+
+import java.util.Collection;
+
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @Slf4j
 @RestController
@@ -28,9 +24,13 @@ public class UserController {
 
   private final UserService userService;
 
+  private final FilmService filmService;
+
   @Autowired
-  public UserController(UserService userService) {
+  public UserController(UserService userService,
+                        FilmService filmService) {
     this.userService = userService;
+    this.filmService = filmService;
   }
 
   @GetMapping
@@ -43,6 +43,13 @@ public class UserController {
   public User findById(@PathVariable int userId) throws NotFoundException {
     log.info("Получен запрос GET /users/userId на получение пользователя с id={}", userId);
     return userService.findById(userId);
+  }
+
+  @DeleteMapping("/{userId}")
+  @ResponseStatus(NO_CONTENT)
+  public void deleteUser(@PathVariable int userId) throws NotFoundException {
+    log.info("Получен запрос DELETE /users/{} на удаление пользователя", userId);
+    userService.delete(userId);
   }
 
   @GetMapping("/{userId}/friends")
@@ -91,4 +98,16 @@ public class UserController {
         friendId);
     userService.deleteFriend(id, friendId);
   }
+
+  @GetMapping("/{id}/feed")
+  public Collection<Event> getFeed(@PathVariable Integer id) {
+    return userService.getFeed(id);
+  }
+
+  @GetMapping("/{userId}/recommendations")
+  public Collection<Film> getRecommendations(@PathVariable int userId) {
+    log.info("Получен запрос GET /users/{}/recommendations", userId);
+    return filmService.getRecommendations(userId);
+  }
+
 }

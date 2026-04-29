@@ -1,13 +1,14 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
-import java.util.Collection;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.dal.BaseRepository;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.mapper.UserRowMapper;
+
+import java.util.Collection;
+import java.util.Optional;
 
 @Component
 @Slf4j
@@ -23,6 +24,8 @@ public class UserDbStorage extends BaseRepository<User> implements UserStorage {
       "INSERT INTO friends (id_user, id_friend) VALUES (?, ?)";
   private static final String DELETE_FRIEND_QUERY =
       "DELETE FROM friends WHERE id_user = ? AND id_friend = ?";
+  private static final String DELETE_QUERY =
+          "DELETE FROM users WHERE id = ?";
   private static final String FIND_FRIENDS_QUERY =
       "SELECT u.* FROM users u JOIN friends f ON u.id = f.id_friend " +
           "WHERE f.id_user = ?";
@@ -70,6 +73,11 @@ public class UserDbStorage extends BaseRepository<User> implements UserStorage {
   @Override
   public Optional<User> findById(int id) {
     return findOne(FIND_BY_ID_QUERY, id);
+  }
+
+  @Override
+  public void delete(int id) {
+    jdbc.update(DELETE_QUERY, id);
   }
 
   @Override

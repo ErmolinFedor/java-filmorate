@@ -1,25 +1,23 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import static org.springframework.http.HttpStatus.CREATED;
-
 import jakarta.validation.Valid;
-import java.util.Collection;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.SearchType;
+import ru.yandex.practicum.filmorate.model.SortBy;
 import ru.yandex.practicum.filmorate.service.FilmService;
+
+import java.util.Collection;
+import java.util.List;
+
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @Slf4j
 @RestController
@@ -45,11 +43,43 @@ public class FilmController {
     return filmService.getFilmById(id);
   }
 
+  @DeleteMapping("/{filmId}")
+  @ResponseStatus(NO_CONTENT)
+  public void deleteFilm(@PathVariable int filmId) throws NotFoundException {
+    log.info("Получен запрос DELETE /films/{} на удаление фильма", filmId);
+    filmService.delete(filmId);
+  }
+
   @GetMapping("/popular")
-  public Collection<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count)
+  public Collection<Film> getPopularFilms(
+          @RequestParam(defaultValue = "10") int count,
+          @RequestParam(required = false) Integer genreId,
+          @RequestParam(required = false) Integer year) throws ValidationException {
+
+    log.info("Получен запрос GET /films/popular?count={}&genreId={}&year={} на получение топ фильмов по лайкам",
+            count, genreId, year);
+    return filmService.getPopularFilms(count, genreId, year);
+  }
+
+  @GetMapping("/director/{directorId}")
+  public Collection<Film> getFilmsByDirector(@PathVariable int directorId, @RequestParam(defaultValue = "year") SortBy sortBy)
       throws ValidationException {
-    log.info("Получен запрос GET /films/popular?count={count} на получение топ фильмов по лайкам");
-    return filmService.getPopularFilms(count);
+    log.info("Получен запрос GET /films/director/{directorId}?sortBy=[year,likes] на получение фильмов" +
+        " режиссера отсортированных по количеству лайков или году выпуска");
+    return filmService.getFilmsByDirector(directorId, sortBy);
+  }
+
+  @GetMapping("/common")
+  public Collection<Film> getCommonFilms(@RequestParam int userId, @RequestParam int friendId) {
+    log.info("Получен запрос GET /films/common?userId={}&friendId={} на получение общих фильмов",
+            userId, friendId);
+    return filmService.getCommonFilms(userId, friendId);
+  }
+
+  @GetMapping("/search")
+  public Collection<Film> search(@RequestParam @NotBlank String query, @RequestParam @NotEmpty List<SearchType> by) {
+    log.info("Получен запрос GET /films/search?searchTypes=[director,title] на поиск по названию фильмов и по режиссёру");
+    return filmService.searchByDirectorAndName(query, by);
   }
 
   @PostMapping

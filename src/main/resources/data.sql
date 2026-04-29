@@ -15,3 +15,12 @@ VALUES (1, 'Комедия'),
        (4, 'Триллер'),
        (5, 'Документальный'),
        (6, 'Боевик');
+
+SET REFERENTIAL_INTEGRITY FALSE;
+
+TRUNCATE TABLE review_likes;
+TRUNCATE TABLE reviews;
+
+ALTER TABLE reviews ALTER COLUMN review_id RESTART WITH 1;
+
+SET REFERENTIAL_INTEGRITY TRUE;

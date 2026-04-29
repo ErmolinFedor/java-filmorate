@@ -1,7 +1,9 @@
 package ru.yandex.practicum.filmorate.service;
 
-import java.time.LocalDate;
-import java.util.Collection;
+import static ru.yandex.practicum.filmorate.model.EventType.FRIEND;
+import static ru.yandex.practicum.filmorate.model.Operation.ADD;
+import static ru.yandex.practicum.filmorate.model.Operation.REMOVE;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -9,18 +11,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 import ru.yandex.practicum.filmorate.exeption.NotFoundException;
 import ru.yandex.practicum.filmorate.exeption.ValidationException;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.feed.FeedStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
+
+import java.time.LocalDate;
+import java.util.Collection;
 
 @Service
 @Slf4j
 public class UserService {
 
   private final UserStorage userStorage;
+  private final FeedStorage feedStorage;
 
   @Autowired
-  public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
+  public UserService(@Qualifier("userDbStorage") UserStorage userStorage,
+      @Qualifier("feedDbStorage") FeedStorage feedStorage) {
     this.userStorage = userStorage;
+    this.feedStorage = feedStorage;
   }
 
   public Collection<User> findAll() {
@@ -29,6 +39,12 @@ public class UserService {
 
   public User findById(int id) throws NotFoundException {
     return getUserOrThrow(id);
+  }
+
+  public void delete(int userId) throws NotFoundException {
+    getUserOrThrow(userId);
+    userStorage.delete(userId);
+    log.info("Пользователь id={} успешно удален", userId);
   }
 
   public User create(@RequestBody User user) throws ValidationException {
@@ -88,6 +104,7 @@ public class UserService {
     getUserOrThrow(friendId);
     userStorage.addFriend(id, friendId);
     log.info("Пользователь {} добавил в друзья {}", id, friendId);
+    feedStorage.addEvent(id, friendId, FRIEND, ADD);
   }
 
   public Collection<User> findAllFriendsById(int id) throws NotFoundException {
@@ -102,6 +119,14 @@ public class UserService {
     getUserOrThrow(id);
     getUserOrThrow(friendId);
     userStorage.removeFriend(id, friendId);
+    feedStorage.addEvent(id, friendId, FRIEND, REMOVE);
+  }
+
+  public Collection<Event> getFeed(Integer id) {
+    getUserOrThrow(id);
+
+    log.info("Запрошена лента событий для пользователя с id: {}", id);
+    return feedStorage.getFeed(id);
   }
 
   private void validateLogin(User user) throws ValidationException {
